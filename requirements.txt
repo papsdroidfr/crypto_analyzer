@@ -1,0 +1,15 @@
+# CryptoAnalyzer — dépendances Python
+# Compatible Raspberry Pi 4 (ARM64) avec Python 3.11+
+
+# Manipulation de données
+polars==0.20.31
+
+# Requêtes HTTP
+requests==2.32.3
+
+# Graphiques (backend Agg non-interactif pour headless)
+matplotlib==3.9.0
+numpy==1.26.4
+
+# Utilitaires (optionnel mais recommandé)
+python-dateutil==2.9.0

@@ -1,0 +1,238 @@
+{
+  "_comment": "Configuration CryptoAnalyzer — éditez ce fichier pour personnaliser le comportement.",
+
+  "cryptocompare_api_key": "",
+
+  "symbols": [
+    "BTCUSDC",
+    "ETHUSDC",
+    "SOLUSDC",
+  ],
+
+  "timeframes": [
+    {
+      "value": "1h",
+      "label": "1 heure",
+      "candles_chart": 48
+    },
+    {
+      "value": "1d",
+      "label": "24 heures",
+      "candles_chart": 60
+    },
+    {
+      "value": "1w",
+      "label": "1 semaine",
+      "candles_chart": 26
+    }
+  ],
+
+  "charts_output_dir": "charts_output",
+
+  "discord": {
+    "webhook_url": "VOTRE_WEBHOOK_DISCORD_ICI",
+    "username": "CryptoAnalyzer 🤖"
+  },
+
+  "hourly_variation": {
+    "threshold_pct": 3.0,
+    "severity": "WARNING"
+  },
+
+  "alerts": [
+    {
+      "_comment": "RSI 14 en surachat (> 70) sur timeframe quotidienne",
+      "name": "rsi14_overbought_daily",
+      "type": "threshold",
+      "timeframes": ["1d"],
+      "lookback_periods": 1,
+      "severity": "WARNING",
+      "message_tpl": "⚠️ RSI_14 en surachat sur {symbol} [{tf}] — RSI = {rsi_14}",
+      "conditions": [
+        {
+          "indicator": "rsi_14",
+          "operator": ">",
+          "value": 70,
+          "agg": "last"
+        }
+      ]
+    },
+    {
+      "_comment": "RSI 14 en survente (< 30) sur timeframe quotidienne",
+      "name": "rsi14_oversold_daily",
+      "type": "threshold",
+      "timeframes": ["1d"],
+      "lookback_periods": 1,
+      "severity": "WARNING",
+      "message_tpl": "📉 RSI_14 en survente sur {symbol} [{tf}] — RSI = {rsi_14}",
+      "conditions": [
+        {
+          "indicator": "rsi_14",
+          "operator": "<",
+          "value": 30,
+          "agg": "last"
+        }
+      ]
+    },
+    {
+      "_comment": "RSI 7 en surachat extrême (> 80) — signal fort",
+      "name": "rsi7_extreme_overbought",
+      "type": "threshold",
+      "timeframes": ["1d"],
+      "lookback_periods": 1,
+      "severity": "CRITICAL",
+      "message_tpl": "🚨 RSI_7 surachat extrême sur {symbol} [{tf}] — RSI = {rsi_7}",
+      "conditions": [
+        {
+          "indicator": "rsi_7",
+          "operator": ">",
+          "value": 80,
+          "agg": "last"
+        }
+      ]
+    },
+    {
+      "_comment": "Croisement haussier SMA7 au-dessus de SMA30 (Golden Cross court terme)",
+      "name": "sma7_cross_sma30_bullish",
+      "type": "threshold",
+      "timeframes": ["1d"],
+      "lookback_periods": 1,
+      "severity": "INFO",
+      "message_tpl": "📈 SMA7 > SMA30 sur {symbol} [{tf}] — SMA7={sma_7} / SMA30={sma_30}",
+      "conditions": [
+        {
+          "indicator": "sma_7",
+          "operator": ">",
+          "value": 0,
+          "agg": "last"
+        },
+        {
+          "indicator": "sma_30",
+          "operator": ">",
+          "value": 0,
+          "agg": "last"
+        }
+      ]
+    },
+    {
+      "_comment": "Prix sous SMA200 (tendance baissière long terme)",
+      "name": "price_below_sma200",
+      "type": "threshold",
+      "timeframes": ["1d"],
+      "lookback_periods": 1,
+      "severity": "WARNING",
+      "message_tpl": "📉 Prix sous SMA200 sur {symbol} [{tf}] — Close={close} / SMA200={sma_200}",
+      "conditions": [
+        {
+          "indicator": "sma_200",
+          "operator": ">",
+          "value": 0,
+          "agg": "last"
+        },
+        {
+          "indicator": "close",
+          "operator": "<",
+          "value": 0,
+          "agg": "last"
+        }
+      ]
+    },
+    {
+      "_comment": "MACD haussier : ligne MACD > signal sur timeframe hebdomadaire",
+      "name": "macd_bullish_weekly",
+      "type": "threshold",
+      "timeframes": ["1w"],
+      "lookback_periods": 1,
+      "severity": "INFO",
+      "message_tpl": "📊 MACD haussier sur {symbol} [{tf}] — MACD={macd_line} / Signal={macd_signal}",
+      "conditions": [
+        {
+          "indicator": "macd_hist",
+          "operator": ">",
+          "value": 0,
+          "agg": "last"
+        }
+      ]
+    },
+    {
+      "_comment": "Prix au-dessus de la bande supérieure de Bollinger (breakout haussier)",
+      "name": "price_above_bb_upper",
+      "type": "threshold",
+      "timeframes": ["1d"],
+      "lookback_periods": 1,
+      "severity": "WARNING",
+      "message_tpl": "⚡ Breakout Bollinger haussier sur {symbol} [{tf}] — %B={bb_pct_b}",
+      "conditions": [
+        {
+          "indicator": "bb_pct_b",
+          "operator": ">",
+          "value": 1.0,
+          "agg": "last"
+        }
+      ]
+    },
+    {
+      "_comment": "Prix sous la bande inférieure de Bollinger (breakout baissier)",
+      "name": "price_below_bb_lower",
+      "type": "threshold",
+      "timeframes": ["1d"],
+      "lookback_periods": 1,
+      "severity": "WARNING",
+      "message_tpl": "⚡ Breakout Bollinger baissier sur {symbol} [{tf}] — %B={bb_pct_b}",
+      "conditions": [
+        {
+          "indicator": "bb_pct_b",
+          "operator": "<",
+          "value": 0.0,
+          "agg": "last"
+        }
+      ]
+    },
+    {
+      "_comment": "Compression de Bollinger (faible volatilité, breakout imminent)",
+      "name": "bollinger_squeeze",
+      "type": "threshold",
+      "timeframes": ["1d"],
+      "lookback_periods": 1,
+      "severity": "INFO",
+      "message_tpl": "🔀 Compression Bollinger sur {symbol} [{tf}] — Width={bb_width}",
+      "conditions": [
+        {
+          "indicator": "bb_width",
+          "operator": "<",
+          "value": 0.05,
+          "agg": "last"
+        }
+      ]
+    },
+    {
+      "_comment": "Combo fort : RSI 7 et 14 tous les deux en surachat + MACD haussier",
+      "name": "strong_bullish_combo",
+      "type": "threshold",
+      "timeframes": ["1d"],
+      "lookback_periods": 1,
+      "severity": "CRITICAL",
+      "message_tpl": "🚀 Signal haussier fort sur {symbol} [{tf}] — RSI7={rsi_7} RSI14={rsi_14} MACD={macd_hist}",
+      "conditions": [
+        {
+          "indicator": "rsi_7",
+          "operator": ">",
+          "value": 65,
+          "agg": "last"
+        },
+        {
+          "indicator": "rsi_14",
+          "operator": ">",
+          "value": 60,
+          "agg": "last"
+        },
+        {
+          "indicator": "macd_hist",
+          "operator": ">",
+          "value": 0,
+          "agg": "last"
+        }
+      ]
+    }
+  ]
+}
