@@ -13,3 +13,9 @@ numpy==1.26.4
 
 # Utilitaires (optionnel mais recommandé)
 python-dateutil==2.9.0
+
+# Outils de test
+pytest>=7.0.0
+# pytest-mock 4.x may not be available on all platforms; pin to 3.x
+pytest-mock>=3.8.0
+coverage>=7.0.0
