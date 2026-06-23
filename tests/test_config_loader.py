@@ -1,8 +1,6 @@
 import json
-from pathlib import Path
 
 import pytest
-import polars as pl
 
 from src.config_loader import JsonConfigLoader
 

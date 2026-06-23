@@ -34,13 +34,13 @@ def _build_engine(config_path: str = "config/settings.json"):
     from src.alerts.alert_rules import build_default_registry
     from src.charts.chart_generator import MatplotlibChartGenerator
     from src.config_loader import JsonConfigLoader
-    from src.fetchers.cryptocompare_fetcher import CryptoCompareFetcher
+    from src.fetchers.binance_fetcher import BinanceFetcher
     from src.indicators.technical_indicators import TechnicalIndicatorCalculator
     from src.notifiers.discord_notifier import DiscordNotifier
 
     config = JsonConfigLoader(config_path).load()
 
-    fetcher    = CryptoCompareFetcher(api_key=config.get("cryptocompare_api_key"))
+    fetcher    = BinanceFetcher()
     calculator = TechnicalIndicatorCalculator()
     notifier   = DiscordNotifier(
         webhook_url=config["discord"]["webhook_url"],
@@ -79,7 +79,7 @@ def cmd_chart(args) -> None:
     """Génère un graphique ad-hoc pour un symbole et une timeframe donnés."""
     from src.charts.chart_generator import MatplotlibChartGenerator
     from src.config_loader import JsonConfigLoader
-    from src.fetchers.cryptocompare_fetcher import CryptoCompareFetcher
+    from src.fetchers.binance_fetcher import BinanceFetcher
     from src.indicators.technical_indicators import TechnicalIndicatorCalculator
     from src.interfaces import Symbol, Timeframe
 
@@ -94,7 +94,7 @@ def cmd_chart(args) -> None:
     tf = Timeframe(**tf_cfg)
     symbol = Symbol(args.symbol)
 
-    fetcher    = CryptoCompareFetcher(api_key=config.get("cryptocompare_api_key"))
+    fetcher    = BinanceFetcher()
     calculator = TechnicalIndicatorCalculator()
     generator  = MatplotlibChartGenerator()
 

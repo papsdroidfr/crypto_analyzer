@@ -3,6 +3,8 @@
 
 # Manipulation de données
 polars==0.20.31
+pyarrow==16.1.0
+pandas==2.2.2
 
 # Requêtes HTTP
 requests==2.32.3

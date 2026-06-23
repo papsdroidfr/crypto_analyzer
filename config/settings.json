@@ -1,12 +1,14 @@
 {
   "_comment": "Configuration CryptoAnalyzer — éditez ce fichier pour personnaliser le comportement.",
 
-  "cryptocompare_api_key": "",
+  "_fetcher": "Binance API publique — aucune clé nécessaire",
 
   "symbols": [
     "BTCUSDC",
     "ETHUSDC",
     "SOLUSDC",
+    "TAOUSDC",
+    "BNBUSDC"
   ],
 
   "timeframes": [
