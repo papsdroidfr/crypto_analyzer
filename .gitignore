@@ -12,6 +12,7 @@ __pycache__/
 # Fichiers de config sensibles
 .env
 *.env
+settings.json
 
 # IDE
 .vscode/
