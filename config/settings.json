@@ -47,7 +47,7 @@
       "timeframes": [
         "1d"
       ],
-      "lookback_periods": 1,
+      "lookback_periods": 2,
       "severity": "CRITICAL",
       "message_tpl": "🚨 RSI_7 surachat extrême sur {symbol} [{tf}] — RSI = {rsi_7}",
       "conditions": [
@@ -55,7 +55,7 @@
           "indicator": "rsi_7",
           "operator": ">",
           "value": 80,
-          "agg": "last"
+          "agg": "min"
         }
       ]
     },
@@ -67,7 +67,7 @@
       "timeframes": [
         "1d"
       ],
-      "lookback_periods": 1,
+      "lookback_periods": 2,
       "severity": "CRITICAL",
       "message_tpl": "🚨 RSI_7 survente extrême sur {symbol} [{tf}] — RSI = {rsi_7}",
       "conditions": [
@@ -75,7 +75,7 @@
           "indicator": "rsi_7",
           "operator": "<",
           "value": 20,
-          "agg": "last"
+          "agg": "min"
         }
       ]
     },
@@ -130,6 +130,29 @@
           "agg": "last"
         }
       ]
+    },
+
+    {
+      "_comment": "Rebond sur la bande inférieure de Bollinger — signal de retournement haussier",
+      "name": "bollinger_bounce",
+      "type": "bollinger_bounce",
+      "timeframes": [
+        "1d"
+      ],
+      "severity": "WARNING",
+      "message_tpl": "🔄 Rebond Bollinger basse sur {symbol} [{tf}] | Close N-1={prev_close} < BB_low N-1={prev_bb_lower} → Close N={curr_close} > BB_low N={curr_bb_lower}"
+    },
+    {
+      "_comment": "Rebond sur la bande supérieure de Bollinger — signal de retournement baissier",
+      "name": "bollinger_upper_bounce",
+      "type": "bollinger_upper_bounce",
+      "timeframes": [
+        "1d"
+      ],
+      "severity": "WARNING",
+      "message_tpl": "🔄 Rebond Bollinger haute sur {symbol} [{tf}] | Close N-1={prev_close} > BB_up N-1={prev_bb_upper} → Close N={curr_close} < BB_up N={curr_bb_upper}"
     }
+
+
   ]
 }
