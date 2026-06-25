@@ -63,15 +63,13 @@ class AlertEngine:
         logger.info("=== Démarrage analyse quotidienne ===")
         all_alerts: list[Alert] = []
 
-        symbols   = [Symbol(s) for s in self._config["symbols"]]
+        symbols    = [Symbol(s) for s in self._config["symbols"]]
         timeframes = self._build_timeframes(daily=True)
 
         for symbol in symbols:
             for tf in timeframes:
                 try:
-                    alerts = self._process_symbol_timeframe(
-                        symbol, tf, lookback=7
-                    )
+                    alerts = self._process_symbol_timeframe(symbol, tf, lookback=7)
                     all_alerts.extend(alerts)
                 except Exception as exc:
                     logger.error(
@@ -90,11 +88,15 @@ class AlertEngine:
         """
         Surveille les variations horaires pour toutes les paires.
         Ne fait tourner QUE HourlyVariationRule.
+
+        Deux fetch distincts :
+          - 3 bougies pour la détection de variation (rapide)
+          - candles_chart bougies pour le graphique si alerte déclenchée
         """
         logger.info("=== Surveillance horaire ===")
         all_alerts: list[Alert] = []
-        symbols = [Symbol(s) for s in self._config["symbols"]]
-        tf_hourly = Timeframe(value="1h", label="1h", candles_chart=48)
+        symbols   = [Symbol(s) for s in self._config["symbols"]]
+        tf_hourly = self._get_hourly_timeframe()
 
         hourly_params = self._config.get("hourly_variation", {
             "threshold_pct": 3.0,
@@ -104,11 +106,18 @@ class AlertEngine:
 
         for symbol in symbols:
             try:
-                data = self._fetcher.fetch(symbol, tf_hourly, limit=3)
-                enriched = self._calc.calculate(data)
-                alert = rule.evaluate(symbol, tf_hourly, enriched, hourly_params)
+                # Fetch minimal pour la détection (3 bougies suffisent)
+                data_detect    = self._fetcher.fetch(symbol, tf_hourly, limit=3)
+                enriched_detect = self._calc.calculate(data_detect)
+                alert = rule.evaluate(symbol, tf_hourly, enriched_detect, hourly_params)
+
                 if alert:
-                    chart_path = self._generate_chart(data, enriched, alert)
+                    # Fetch complet pour un graphique lisible
+                    chart_limit    = max(250, tf_hourly.candles_chart + 50)
+                    data_chart     = self._fetcher.fetch(symbol, tf_hourly, limit=chart_limit)
+                    enriched_chart = self._calc.calculate(data_chart)
+
+                    chart_path = self._generate_chart(data_chart, enriched_chart, alert)
                     if chart_path:
                         alert.chart_path = chart_path
                         self._notifier.send_chart(alert, chart_path)
@@ -116,6 +125,7 @@ class AlertEngine:
                         self._notifier.send(alert)
                     all_alerts.append(alert)
                     logger.info("Alerte horaire : %s", alert.message)
+
             except Exception as exc:
                 logger.error("Erreur horaire %s : %s", symbol, exc, exc_info=True)
 
@@ -125,6 +135,21 @@ class AlertEngine:
     # Helpers
     # ------------------------------------------------------------------
 
+    def _get_hourly_timeframe(self) -> Timeframe:
+        """
+        Lit la config de la timeframe '1h' depuis settings.json.
+        Garantit que candles_chart est respecté pour les graphiques.
+        """
+        tf_cfg = next(
+            (t for t in self._config.get("timeframes", []) if t["value"] == "1h"),
+            {"value": "1h", "label": "1 heure", "candles_chart": 48},
+        )
+        return Timeframe(
+            value=tf_cfg["value"],
+            label=tf_cfg["label"],
+            candles_chart=tf_cfg.get("candles_chart", 48),
+        )
+
     def _process_symbol_timeframe(
         self,
         symbol: Symbol,
@@ -133,26 +158,25 @@ class AlertEngine:
     ) -> list[Alert]:
         # On récupère assez de données pour les indicateurs (200 SMA min)
         fetch_limit = max(250, lookback + 200)
-        data = self._fetcher.fetch(symbol, tf, limit=fetch_limit)
+        data     = self._fetcher.fetch(symbol, tf, limit=fetch_limit)
         enriched = self._calc.calculate(data)
 
-        # Sous-DataFrame des N dernières périodes pleines
+        # Sous-DataFrame des N dernières périodes pleines pour l'évaluation
         eval_df = enriched.tail(lookback)
 
         alerts: list[Alert] = []
         for rule_cfg in self._config.get("alerts", []):
-            # Filtrage par symbole et timeframe si précisé
             if "symbols" in rule_cfg and symbol.value not in rule_cfg["symbols"]:
                 continue
             if "timeframes" in rule_cfg and tf.value not in rule_cfg["timeframes"]:
                 continue
-            # Pas de règle horaire dans le mode quotidien
             if rule_cfg.get("type") == "hourly_variation":
                 continue
 
-            rule = self._registry.build(rule_cfg.get("name", rule_cfg.get("type", "threshold")))
+            rule  = self._registry.build(rule_cfg.get("name", rule_cfg.get("type", "threshold")))
             alert = rule.evaluate(symbol, tf, eval_df, rule_cfg)
             if alert:
+                # Le graphique utilise le DataFrame complet (pas juste les 7 périodes)
                 chart_path = self._generate_chart(data, enriched, alert)
                 if chart_path:
                     alert.chart_path = chart_path
