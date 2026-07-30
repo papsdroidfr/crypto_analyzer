@@ -55,3 +55,36 @@ def test_registry_build_default():
     registry = build_default_registry()
     r = registry.build("threshold")
     assert isinstance(r, ThresholdAlertRule)
+
+
+def test_threshold_rule_can_compare_two_candles():
+    df = pl.DataFrame({
+        "close": [95.0, 100.0],
+        "bb_lower": [96.0, 99.0],
+    })
+    rule = ThresholdAlertRule("bollinger_bounce")
+    symbol = Symbol("BTCUSDC")
+    tf = Timeframe(value="1d", label="1d", candles_chart=7)
+    params = {
+        "conditions": [
+            {
+                "left": {"indicator": "close", "offset": 1},
+                "operator": "<",
+                "right": {"indicator": "bb_lower", "offset": 1},
+            },
+            {
+                "left": {"indicator": "close", "offset": 0},
+                "operator": ">",
+                "right": {"indicator": "bb_lower", "offset": 0},
+            },
+            {
+                "left": {"indicator": "close", "offset": 0},
+                "operator": ">",
+                "right": {"indicator": "close", "offset": 1},
+            },
+        ],
+        "severity": "WARNING",
+    }
+
+    alert = rule.evaluate(symbol, tf, df, params)
+    assert alert is not None

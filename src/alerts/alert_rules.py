@@ -3,61 +3,102 @@ alert_rules.py — Règles d'alerte paramétrables.
 
 Architecture :
   • IAlertRule                : contrat abstrait (interfaces.py)
-  • ThresholdAlertRule        : règle générique « toutes les conditions sont vraies »
-  • HourlyVariationRule       : surveillance horaire des variations de cours
-  • BollingerBounceRule       : détection de rebond sur la bande inférieure de Bollinger
-  • BollingerUpperBounceRule  : détection de rebond sur la bande supérieure de Bollinger
+  • ThresholdAlertRule        : règle générique configurable
+  • HourlyVariationRule       : surveillance horaire des variations de prix
 
-Principe O : ajouter une règle = créer une classe, sans modifier le moteur.
+Principe O : ajouter une règle = créer une classe ou une configuration JSON,
+sans modifier le moteur.
 Principe I : les règles ne dépendent que de IAlertRule, pas du reste du système.
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Format des conditions dans le JSON (ThresholdAlertRule) :
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Formats supportés par ThresholdAlertRule :
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1) Format legacy : comparaison à une valeur fixe
+
   {
-    "indicator": "rsi_14",   // nom de colonne dans le DataFrame enrichi
-    "operator":  ">",        // <, <=, >, >=, ==, !=
-    "value":     70,         // seuil numérique fixe
-    "agg":       "last"      // stratégie d'agrégation sur lookback_periods (voir ci-dessous)
+    "indicator": "rsi_14",
+    "operator":  ">",
+    "value":     70,
+    "agg":       "last"
   }
 
-Une alerte est déclenchée si TOUTES les conditions de la règle sont vraies.
+  Ce format reste compatible avec l’ancien comportement :
+  - "lookback_periods" lit les N dernières bougies
+  - "agg" agrège ces N valeurs en une seule
+    ("last", "min", "max", "mean")
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Paramètre lookback_periods et stratégies d'agrégation (agg) :
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  lookback_periods (int, défaut: 1) :
-    Nombre de bougies complètes sur lesquelles la condition est évaluée.
-    Avec lookback_periods: 1, seule la dernière bougie est examinée.
-    Avec lookback_periods: 3, les 3 dernières bougies sont agrégées via `agg`.
+2) Format inter-bougies : comparaison d’indicateurs entre bougies
 
-  agg (str, défaut: "last") — comment réduire les N valeurs en une seule :
-    "last"  → valeur de la dernière bougie uniquement (comportement par défaut)
-    "min"   → valeur minimale sur les N bougies
-              Utile pour s'assurer qu'une condition a été vraie en continu.
-              Ex: lookback_periods=2, agg="min", operator=">", value=70
-                  → le RSI est resté AU-DESSUS de 70 sur les 2 dernières bougies
-    "max"   → valeur maximale sur les N bougies
-              Ex: lookback_periods=3, agg="max", operator="<", value=30
-                  → le RSI a atteint AU MOINS UNE FOIS moins de 30 sur 3 bougies
-    "mean"  → moyenne sur les N bougies
-              Utile pour lisser les pics isolés et détecter une tendance.
-              Ex: lookback_periods=5, agg="mean", operator=">", value=60
-                  → le RSI moyen est au-dessus de 60 sur 5 bougies
+  {
+    "left":  { "indicator": "close", "offset": 0 },
+    "operator": ">",
+    "right": { "indicator": "close", "offset": 1 }
+  }
 
-  Conseil : avec lookback_periods=1 (défaut) et agg="last", lookback_periods
-  n'a aucun effet — c'est la configuration la plus simple et la plus réactive.
-  Augmenter lookback_periods avec agg="min" ou "max" permet de filtrer les
-  faux signaux générés par des bougies isolées atypiques.
+  Ici :
+  - offset=0 = dernière bougie
+  - offset=1 = bougie précédente
+  - on peut comparer deux indicateurs sur deux lignes différentes
+  - on peut comparer indicateur vs constante en mixant "left" et "right"
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Règles nécessitant une comparaison inter-bougies :
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  Certains signaux (ex: rebond Bollinger, croisement de moyennes mobiles)
-  nécessitent de comparer la bougie N à la bougie N-1. ThresholdAlertRule
-  ne le permet pas car elle compare toujours à une valeur fixe.
-  Ces cas font l'objet de règles dédiées (BollingerBounceRule, etc.)
-  qui lisent explicitement les deux dernières lignes du DataFrame.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Exemples de règles directes en JSON :
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Rebond Bollinger bas :
+
+  {
+    "name": "bollinger_bounce",
+    "type": "threshold",
+    "timeframes": ["1d"],
+    "severity": "WARNING",
+    "conditions": [
+      {
+        "left":  { "indicator": "close", "offset": 1 },
+        "operator": "<",
+        "right": { "indicator": "bb_lower", "offset": 1 }
+      },
+      {
+        "left":  { "indicator": "close", "offset": 0 },
+        "operator": ">",
+        "right": { "indicator": "bb_lower", "offset": 0 }
+      },
+      {
+        "left":  { "indicator": "close", "offset": 0 },
+        "operator": ">",
+        "right": { "indicator": "close", "offset": 1 }
+      }
+    ]
+  }
+
+Croisement de moyennes mobiles :
+
+  {
+    "name": "ma_cross",
+    "type": "threshold",
+    "timeframes": ["1d"],
+    "conditions": [
+      {
+        "left":  { "indicator": "ma_50", "offset": 0 },
+        "operator": ">",
+        "right": { "indicator": "ma_200", "offset": 0 }
+      },
+      {
+        "left":  { "indicator": "ma_50", "offset": 1 },
+        "operator": "<",
+        "right": { "indicator": "ma_200", "offset": 1 }
+      }
+    ]
+  }
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Compatibilité :
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+- Le format legacy reste supporté.
+- Les conditions inter-bougies rendent possibles les rules
+  `BollingerBounceRule` et `BollingerUpperBounceRule` en JSON,
+  sans code dédié.
+- `HourlyVariationRule` reste une règle spécialisée, car elle repose sur
+  une logique métier simple de variation de prix horaire.
 """
 
 import logging
@@ -70,6 +111,116 @@ import polars as pl
 from src.interfaces import Alert, IAlertRule, Symbol, Timeframe
 
 logger = logging.getLogger(__name__)
+
+from dataclasses import dataclass
+
+@dataclass(frozen=True)
+class Operand:
+    indicator: str | None = None
+    offset: int = 0
+    value: float | None = None
+
+    @classmethod
+    def from_dict(cls, config: dict[str, Any]) -> "Operand":
+        if "indicator" in config:
+            return cls(
+                indicator=config["indicator"],
+                offset=int(config.get("offset", 0)),
+            )
+        return cls(value=float(config["value"]))
+
+    def required_rows(self) -> int:
+        if self.indicator is None:
+            return 1
+        return self.offset + 1
+
+    def resolve(self, df: pl.DataFrame) -> float | None:
+        if self.value is not None:
+            return self.value
+        if self.indicator is None or self.indicator not in df.columns:
+            return None
+        index = len(df) - 1 - self.offset
+        if index < 0:
+            return None
+        return df[self.indicator][index]
+
+
+@dataclass(frozen=True)
+class AlertCondition:
+    left: Operand
+    operator_str: str
+    right: Operand
+    agg: str = "last"
+    legacy_indicator: str | None = None
+
+    @classmethod
+    def from_dict(cls, config: dict[str, Any]) -> "AlertCondition":
+        if "left" in config or "right" in config:
+            return cls(
+                left=Operand.from_dict(config["left"]),
+                operator_str=config["operator"],
+                right=Operand.from_dict(config["right"]),
+                agg=config.get("agg", "last"),
+            )
+        return cls(
+            left=Operand.from_dict({"indicator": config["indicator"]}),
+            operator_str=config["operator"],
+            right=Operand.from_dict({"value": config["value"]}),
+            agg=config.get("agg", "last"),
+            legacy_indicator=config["indicator"],
+        )
+
+    def max_offset(self) -> int:
+        return max(self.left.required_rows(), self.right.required_rows()) - 1
+
+    def is_legacy(self) -> bool:
+        return self.legacy_indicator is not None
+
+    def _aggregate(self, df: pl.DataFrame) -> float | None:
+        values = df[self.left.indicator].drop_nulls()
+        if values.is_empty():
+            return None
+        if self.agg == "last":
+            return values[-1]
+        if self.agg == "min":
+            return values.min()
+        if self.agg == "max":
+            return values.max()
+        if self.agg == "mean":
+            return values.mean()
+        return values[-1]
+
+    def evaluate(self, df: pl.DataFrame, lookback: int) -> tuple[bool, dict[str, float]]:
+        fn = _OPS.get(self.operator_str)
+        if fn is None:
+            return False, {}
+
+        if self.is_legacy():
+            if self.left.indicator is None:
+                return False, {}
+            sub_df = df.tail(lookback)
+            left_value = self._aggregate(sub_df)
+            right_value = self.right.value
+        else:
+            left_value = self.left.resolve(df)
+            right_value = self.right.resolve(df)
+
+        if left_value is None or right_value is None:
+            return False, {}
+
+        context_values: dict[str, float] = {}
+        if self.legacy_indicator is not None:
+            context_values[self.legacy_indicator] = float(left_value)
+        else:
+            if self.left.indicator is not None:
+                key = f"{self.left.indicator}_{self.left.offset}"
+                context_values[key] = float(left_value)
+            if self.right.indicator is not None:
+                key = f"{self.right.indicator}_{self.right.offset}"
+                context_values[key] = float(right_value)
+
+        return fn(left_value, right_value), context_values
+    
 
 # Opérateurs supportés
 _OPS: dict[str, Any] = {
@@ -108,66 +259,63 @@ class ThresholdAlertRule(IAlertRule):
         params: dict[str, Any],
     ) -> Optional[Alert]:
 
-        conditions: list[dict] = params.get("conditions", [])
-        if not conditions:
+        conditions_cfg: list[dict] = params.get("conditions", [])
+        if not conditions_cfg:
             logger.warning("Règle '%s' : aucune condition définie.", self._name)
             return None
 
         lookback: int = params.get("lookback_periods", 1)
-        if len(enriched_df) < lookback:
+        conditions = [AlertCondition.from_dict(cond) for cond in conditions_cfg]
+
+        required_lookback = max(
+            lookback,
+            max((cond.max_offset() + 1 for cond in conditions), default=1),
+        )
+
+        if len(enriched_df) < required_lookback:
             logger.debug("Pas assez de données pour la règle '%s'.", self._name)
             return None
 
-        eval_df = enriched_df.tail(lookback)
+        eval_df = enriched_df.tail(required_lookback)
 
         results: list[bool] = []
         context_values: dict[str, float] = {}
 
         for cond in conditions:
-            indicator    = cond["indicator"]
-            operator_str = cond["operator"]
-            threshold    = float(cond["value"])
-
-            if indicator not in eval_df.columns:
-                logger.warning(
-                    "Règle '%s' : indicateur '%s' absent du DataFrame.",
-                    self._name, indicator,
-                )
-                results.append(False)
-                continue
-
-            fn = _OPS.get(operator_str)
-            if fn is None:
-                logger.error("Opérateur inconnu : '%s'", operator_str)
-                results.append(False)
-                continue
-
-            col_values = eval_df[indicator].drop_nulls()
-            if col_values.is_empty():
-                results.append(False)
-                continue
-
-            agg = cond.get("agg", "last")
-            if agg == "last":
-                actual_value = col_values[-1]
-            elif agg == "min":
-                actual_value = col_values.min()
-            elif agg == "max":
-                actual_value = col_values.max()
-            elif agg == "mean":
-                actual_value = col_values.mean()
+            if cond.is_legacy():
+                if cond.left.indicator not in eval_df.columns:
+                    logger.warning(
+                        "Règle '%s' : indicateur '%s' absent du DataFrame.",
+                        self._name, cond.left.indicator,
+                    )
+                    results.append(False)
+                    continue
             else:
-                actual_value = col_values[-1]
+                if cond.left.indicator and cond.left.indicator not in eval_df.columns:
+                    logger.warning(
+                        "Règle '%s' : indicateur '%s' absent du DataFrame.",
+                        self._name, cond.left.indicator,
+                    )
+                    results.append(False)
+                    continue
+                if cond.right.indicator and cond.right.indicator not in eval_df.columns:
+                    logger.warning(
+                        "Règle '%s' : indicateur '%s' absent du DataFrame.",
+                        self._name, cond.right.indicator,
+                    )
+                    results.append(False)
+                    continue
 
-            context_values[indicator] = actual_value
-            results.append(fn(actual_value, threshold))
+            ok, ctx = cond.evaluate(eval_df, lookback)
+            results.append(ok)
+            context_values.update(ctx)
 
         if not all(results):
             return None
 
         severity = params.get("severity", "INFO")
-        msg_tpl  = params.get("message_tpl", "Alerte {rule} sur {symbol} [{tf}]")
-        message  = msg_tpl.format(
+        msg_tpl = params.get("message_tpl", "Alerte {rule} sur {symbol} [{tf}]")
+        message = msg_tpl.format(
             rule=self._name,
             symbol=symbol,
             tf=timeframe.label,
@@ -245,155 +393,6 @@ class HourlyVariationRule(IAlertRule):
         )
 
 
-# ===========================================================================
-# BollingerBounceRule  (rebond sur la bande INFÉRIEURE)
-# ===========================================================================
-
-class BollingerBounceRule(IAlertRule):
-    """
-    Détecte un rebond haussier sur la bande inférieure de Bollinger.
-
-    Conditions (toutes doivent être vraies) :
-      1. Close N-1 < bb_lower N-1  — la bougie précédente était sous la bande
-      2. Close N   > bb_lower N    — la bougie courante est repassée au-dessus
-      3. Close N   > Close N-1     — momentum haussier confirmé
-
-    Paramètres attendus dans `params` :
-      - severity    : str  — "INFO" | "WARNING" | "CRITICAL"
-      - message_tpl : str  — template optionnel
-    """
-
-    @property
-    def name(self) -> str:
-        return "bollinger_bounce"
-
-    def evaluate(
-        self,
-        symbol: Symbol,
-        timeframe: Timeframe,
-        enriched_df: pl.DataFrame,
-        params: dict[str, Any],
-    ) -> Optional[Alert]:
-
-        if len(enriched_df) < 2:
-            logger.debug("BollingerBounceRule : pas assez de bougies.")
-            return None
-
-        if not {"close", "bb_lower"}.issubset(enriched_df.columns):
-            logger.warning("BollingerBounceRule : colonnes manquantes.")
-            return None
-
-        last_two      = enriched_df.tail(2)
-        prev_close    = last_two["close"][0]
-        curr_close    = last_two["close"][1]
-        prev_bb_lower = last_two["bb_lower"][0]
-        curr_bb_lower = last_two["bb_lower"][1]
-
-        if any(v is None for v in (prev_close, curr_close, prev_bb_lower, curr_bb_lower)):
-            logger.debug("BollingerBounceRule : valeurs nulles, règle ignorée.")
-            return None
-
-        if not (
-            prev_close < prev_bb_lower   # N-1 sous la bande
-            and curr_close > curr_bb_lower  # N au-dessus
-            and curr_close > prev_close     # momentum haussier
-        ):
-            return None
-
-        severity = params.get("severity", "INFO")
-        msg_tpl  = params.get(
-            "message_tpl",
-            "🔄 Rebond Bollinger basse sur {symbol} [{tf}] "
-            "| Close N-1={prev_close} < BB_low N-1={prev_bb_lower} "
-            "→ Close N={curr_close} > BB_low N={curr_bb_lower}",
-        )
-        message = msg_tpl.format(
-            symbol=symbol, tf=timeframe.label,
-            prev_close=f"{prev_close:.4f}", curr_close=f"{curr_close:.4f}",
-            prev_bb_lower=f"{prev_bb_lower:.4f}", curr_bb_lower=f"{curr_bb_lower:.4f}",
-        )
-
-        return Alert(
-            symbol=symbol, timeframe=timeframe, rule_name=self.name,
-            message=message, triggered_at=datetime.now(tz=timezone.utc),
-            severity=severity,
-        )
-
-
-# ===========================================================================
-# BollingerUpperBounceRule  (rebond sur la bande SUPÉRIEURE)
-# ===========================================================================
-
-class BollingerUpperBounceRule(IAlertRule):
-    """
-    Détecte un rebond baissier sur la bande supérieure de Bollinger.
-
-    Conditions (toutes doivent être vraies) :
-      1. Close N-1 > bb_upper N-1  — la bougie précédente était au-dessus de la bande
-      2. Close N   < bb_upper N    — la bougie courante est repassée en-dessous
-      3. Close N   < Close N-1     — momentum baissier confirmé
-
-    Paramètres attendus dans `params` :
-      - severity    : str  — "INFO" | "WARNING" | "CRITICAL"
-      - message_tpl : str  — template optionnel
-    """
-
-    @property
-    def name(self) -> str:
-        return "bollinger_upper_bounce"
-
-    def evaluate(
-        self,
-        symbol: Symbol,
-        timeframe: Timeframe,
-        enriched_df: pl.DataFrame,
-        params: dict[str, Any],
-    ) -> Optional[Alert]:
-
-        if len(enriched_df) < 2:
-            logger.debug("BollingerUpperBounceRule : pas assez de bougies.")
-            return None
-
-        if not {"close", "bb_upper"}.issubset(enriched_df.columns):
-            logger.warning("BollingerUpperBounceRule : colonnes manquantes.")
-            return None
-
-        last_two      = enriched_df.tail(2)
-        prev_close    = last_two["close"][0]
-        curr_close    = last_two["close"][1]
-        prev_bb_upper = last_two["bb_upper"][0]
-        curr_bb_upper = last_two["bb_upper"][1]
-
-        if any(v is None for v in (prev_close, curr_close, prev_bb_upper, curr_bb_upper)):
-            logger.debug("BollingerUpperBounceRule : valeurs nulles, règle ignorée.")
-            return None
-
-        if not (
-            prev_close > prev_bb_upper   # N-1 au-dessus de la bande
-            and curr_close < curr_bb_upper  # N repassée en-dessous
-            and curr_close < prev_close     # momentum baissier
-        ):
-            return None
-
-        severity = params.get("severity", "INFO")
-        msg_tpl  = params.get(
-            "message_tpl",
-            "🔄 Rebond Bollinger haute sur {symbol} [{tf}] "
-            "| Close N-1={prev_close} > BB_up N-1={prev_bb_upper} "
-            "→ Close N={curr_close} < BB_up N={curr_bb_upper}",
-        )
-        message = msg_tpl.format(
-            symbol=symbol, tf=timeframe.label,
-            prev_close=f"{prev_close:.4f}", curr_close=f"{curr_close:.4f}",
-            prev_bb_upper=f"{prev_bb_upper:.4f}", curr_bb_upper=f"{curr_bb_upper:.4f}",
-        )
-
-        return Alert(
-            symbol=symbol, timeframe=timeframe, rule_name=self.name,
-            message=message, triggered_at=datetime.now(tz=timezone.utc),
-            severity=severity,
-        )
-
 
 # ===========================================================================
 # Registre
@@ -431,6 +430,4 @@ def build_default_registry() -> AlertRuleRegistry:
     """Crée et retourne un registre avec les règles built-in."""
     registry = AlertRuleRegistry()
     registry.register(ThresholdAlertRule,       "threshold")
-    registry.register(BollingerBounceRule,      "bollinger_bounce")
-    registry.register(BollingerUpperBounceRule, "bollinger_upper_bounce")
     return registry

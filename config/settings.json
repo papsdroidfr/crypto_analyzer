@@ -48,7 +48,7 @@
         "1d"
       ],
       "lookback_periods": 2,
-      "severity": "CRITICAL",
+      "severity": "WARNING",
       "message_tpl": "🚨 RSI_7 surachat extrême sur {symbol} [{tf}] — RSI = {rsi_7}",
       "conditions": [
         {
@@ -68,7 +68,7 @@
         "1d"
       ],
       "lookback_periods": 2,
-      "severity": "CRITICAL",
+      "severity": "WARNING",
       "message_tpl": "🚨 RSI_7 survente extrême sur {symbol} [{tf}] — RSI = {rsi_7}",
       "conditions": [
         {
@@ -100,59 +100,30 @@
       ]
     },
 
+
     {
-      "_comment": "Combo fort : RSI 7 et 14 tous les deux en surachat + MACD haussier",
-      "name": "strong_bullish_combo",
+      "name": "bollinger_bounce",
       "type": "threshold",
-      "timeframes": [
-        "1d"
-      ],
-      "lookback_periods": 1,
+      "timeframes": ["1d"],
       "severity": "CRITICAL",
-      "message_tpl": "🚀 Signal haussier fort sur {symbol} [{tf}] — RSI7={rsi_7} RSI14={rsi_14} MACD={macd_hist}",
+      "message_tpl": "⚡️ Rebond sur la bande de Bollinger inférieure sur {symbol} [{tf}] — Close={close}, BB_Lower={bb_lower}",
       "conditions": [
         {
-          "indicator": "rsi_7",
-          "operator": ">",
-          "value": 65,
-          "agg": "last"
+          "left": { "indicator": "close", "offset": 1 },
+          "operator": "<",
+          "right": { "indicator": "bb_lower", "offset": 1 }
         },
         {
-          "indicator": "rsi_14",
+          "left": { "indicator": "close", "offset": 0 },
           "operator": ">",
-          "value": 60,
-          "agg": "last"
+          "right": { "indicator": "bb_lower", "offset": 0 }
         },
         {
-          "indicator": "macd_hist",
+          "left": { "indicator": "close", "offset": 0 },
           "operator": ">",
-          "value": 0,
-          "agg": "last"
+          "right": { "indicator": "close", "offset": 1 }
         }
       ]
-    },
-
-    {
-      "_comment": "Rebond sur la bande inférieure de Bollinger — signal de retournement haussier",
-      "name": "bollinger_bounce",
-      "type": "bollinger_bounce",
-      "timeframes": [
-        "1d"
-      ],
-      "severity": "WARNING",
-      "message_tpl": "🔄 Rebond Bollinger basse sur {symbol} [{tf}] | Close N-1={prev_close} < BB_low N-1={prev_bb_lower} → Close N={curr_close} > BB_low N={curr_bb_lower}"
-    },
-    {
-      "_comment": "Rebond sur la bande supérieure de Bollinger — signal de retournement baissier",
-      "name": "bollinger_upper_bounce",
-      "type": "bollinger_upper_bounce",
-      "timeframes": [
-        "1d"
-      ],
-      "severity": "WARNING",
-      "message_tpl": "🔄 Rebond Bollinger haute sur {symbol} [{tf}] | Close N-1={prev_close} > BB_up N-1={prev_bb_upper} → Close N={curr_close} < BB_up N={curr_bb_upper}"
     }
-
-
   ]
 }
