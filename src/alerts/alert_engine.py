@@ -14,7 +14,7 @@ Principe D : toutes les dépendances sont injectées (fetcher, calculator, etc.)
 import logging
 from typing import Any
 
-from src.alerts.alert_rules import AlertRuleRegistry, HourlyVariationRule
+from src.alerts.alert_rules import AlertRuleRegistry
 from src.interfaces import (
     Alert,
     IChartGenerator,
@@ -102,7 +102,7 @@ class AlertEngine:
             "threshold_pct": 3.0,
             "severity": "WARNING",
         })
-        rule = HourlyVariationRule()
+        rule = self._registry.build("hourly_variation")
 
         for symbol in symbols:
             try:

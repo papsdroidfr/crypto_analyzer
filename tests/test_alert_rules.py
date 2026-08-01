@@ -3,7 +3,6 @@ from datetime import timezone
 
 from src.alerts.alert_rules import (
     ThresholdAlertRule,
-    HourlyVariationRule,
     build_default_registry,
 )
 from src.interfaces import Symbol, Timeframe
@@ -40,15 +39,28 @@ def test_threshold_no_conditions_returns_none():
     assert alert is None
 
 
-def test_hourly_variation_triggers():
-    df = pl.DataFrame({"close": [100.0, 104.0]})
-    rule = HourlyVariationRule()
+def test_threshold_rule_can_model_hourly_variation():
+    df = pl.DataFrame({"close": [101.0, 100.0]})
+    rule = ThresholdAlertRule("hourly_variation")
     symbol = Symbol("ETHUSDC")
     tf = Timeframe(value="1h", label="1h", candles_chart=48)
-    params = {"threshold_pct": 3.0, "severity": "WARNING"}
+    params = {
+        "conditions": [
+            {
+                "left": {"indicator": "close", "offset": 0},
+                "operator": ">=",
+                "right": {"indicator": "close", "offset": 1},
+                "threshold_pct": 3.0,
+            }
+        ],
+        "severity": "WARNING",
+    }
+    alert = rule.evaluate(symbol, tf, df, params)
+    assert alert is None
+
+    df = pl.DataFrame({"close": [104.0, 100.0]})
     alert = rule.evaluate(symbol, tf, df, params)
     assert alert is not None
-    assert "Variation horaire" in alert.message or "%" in alert.message
 
 
 def test_registry_build_default():

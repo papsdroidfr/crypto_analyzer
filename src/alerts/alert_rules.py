@@ -4,7 +4,7 @@ alert_rules.py — Règles d'alerte paramétrables.
 Architecture :
   • IAlertRule                : contrat abstrait (interfaces.py)
   • ThresholdAlertRule        : règle générique configurable
-  • HourlyVariationRule       : surveillance horaire des variations de prix
+  • ThresholdAlertRule         : règle générique configurable
 
 Principe O : ajouter une règle = créer une classe ou une configuration JSON,
 sans modifier le moteur.
@@ -97,8 +97,8 @@ Compatibilité :
 - Les conditions inter-bougies rendent possibles les rules
   `BollingerBounceRule` et `BollingerUpperBounceRule` en JSON,
   sans code dédié.
-- `HourlyVariationRule` reste une règle spécialisée, car elle repose sur
-  une logique métier simple de variation de prix horaire.
+- Les variations horaires se modélisent simplement via ThresholdAlertRule
+  avec une condition de comparaison sur deux bougies consécutives.
 """
 
 import logging
@@ -152,6 +152,7 @@ class AlertCondition:
     right: Operand
     agg: str = "last"
     legacy_indicator: str | None = None
+    threshold_pct: float | None = None
 
     @classmethod
     def from_dict(cls, config: dict[str, Any]) -> "AlertCondition":
@@ -161,6 +162,7 @@ class AlertCondition:
                 operator_str=config["operator"],
                 right=Operand.from_dict(config["right"]),
                 agg=config.get("agg", "last"),
+                threshold_pct=float(config["threshold_pct"]) if "threshold_pct" in config else None,
             )
         return cls(
             left=Operand.from_dict({"indicator": config["indicator"]}),
@@ -168,6 +170,7 @@ class AlertCondition:
             right=Operand.from_dict({"value": config["value"]}),
             agg=config.get("agg", "last"),
             legacy_indicator=config["indicator"],
+            threshold_pct=float(config["threshold_pct"]) if "threshold_pct" in config else None,
         )
 
     def max_offset(self) -> int:
@@ -207,6 +210,16 @@ class AlertCondition:
 
         if left_value is None or right_value is None:
             return False, {}
+
+        if self.threshold_pct is not None:
+            if right_value == 0:
+                return False, {}
+            variation_pct = abs((left_value - right_value) / right_value * 100.0)
+            context_values: dict[str, float] = {
+                "variation_pct": float(variation_pct),
+                "threshold_pct": float(self.threshold_pct),
+            }
+            return fn(variation_pct, self.threshold_pct), context_values
 
         context_values: dict[str, float] = {}
         if self.legacy_indicator is not None:
@@ -260,6 +273,14 @@ class ThresholdAlertRule(IAlertRule):
     ) -> Optional[Alert]:
 
         conditions_cfg: list[dict] = params.get("conditions", [])
+        if not conditions_cfg and "threshold_pct" in params:
+            conditions_cfg = [{
+                "left": {"indicator": "close", "offset": 0},
+                "operator": ">=",
+                "right": {"indicator": "close", "offset": 1},
+                "threshold_pct": float(params["threshold_pct"]),
+            }]
+
         if not conditions_cfg:
             logger.warning("Règle '%s' : aucune condition définie.", self._name)
             return None
@@ -333,68 +354,6 @@ class ThresholdAlertRule(IAlertRule):
 
 
 # ===========================================================================
-# HourlyVariationRule
-# ===========================================================================
-
-class HourlyVariationRule(IAlertRule):
-    """
-    Surveille la variation de cours de clôture entre la bougie horaire courante
-    et la précédente. Déclenche une alerte si |variation| >= seuil (en %).
-
-    Paramètres attendus dans `params` :
-      - threshold_pct : float  — seuil en pourcentage (ex: 3.0 pour 3 %)
-      - severity      : str
-    """
-
-    @property
-    def name(self) -> str:
-        return "hourly_variation"
-
-    def evaluate(
-        self,
-        symbol: Symbol,
-        timeframe: Timeframe,
-        enriched_df: pl.DataFrame,
-        params: dict[str, Any],
-    ) -> Optional[Alert]:
-
-        threshold_pct = float(params.get("threshold_pct", 3.0))
-
-        if len(enriched_df) < 2:
-            return None
-
-        last_two   = enriched_df.tail(2)
-        prev_close = last_two["close"][0]
-        curr_close = last_two["close"][1]
-
-        if prev_close == 0:
-            return None
-
-        variation_pct = ((curr_close - prev_close) / prev_close) * 100.0
-        direction     = "hausse" if variation_pct > 0 else "baisse"
-
-        if abs(variation_pct) < threshold_pct:
-            return None
-
-        severity = params.get("severity", "WARNING")
-        message  = (
-            f"⚡ Variation horaire importante sur {symbol} : "
-            f"{variation_pct:+.2f}% ({direction}) "
-            f"| Cours : {prev_close:.4f} → {curr_close:.4f}"
-        )
-
-        return Alert(
-            symbol=symbol,
-            timeframe=timeframe,
-            rule_name=self.name,
-            message=message,
-            triggered_at=datetime.now(tz=timezone.utc),
-            severity=severity,
-        )
-
-
-
-# ===========================================================================
 # Registre
 # ===========================================================================
 
@@ -414,7 +373,7 @@ class AlertRuleRegistry:
     def build(self, rule_name: str) -> IAlertRule:
         """Instancie une règle par son nom."""
         if rule_name == "hourly_variation":
-            return HourlyVariationRule()
+            return ThresholdAlertRule(rule_name)
         if rule_name == "bollinger_bounce":
             return BollingerBounceRule()
         if rule_name == "bollinger_upper_bounce":
