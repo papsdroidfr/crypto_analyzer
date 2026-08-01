@@ -260,6 +260,46 @@ classDiagram
 - AlertEngine : pilote le cycle complet : fetch → calcul → règles → notification
 - Runner : point d’entrée CLI pour exécuter l’application en mode daily, hourly ou chart
 
+## Flux principal en séquence
+
+```mermaid
+sequenceDiagram
+    participant User as Utilisateur / Cron
+    participant Runner as Runner
+    participant Engine as AlertEngine
+    participant Fetcher as BinanceFetcher
+    participant Calc as TechnicalIndicatorCalculator
+    participant Rules as ThresholdAlertRule
+    participant Chart as MatplotlibChartGenerator
+    participant Notify as DiscordNotifier
+
+    User->>Runner: lance daily/hourly/chart
+    Runner->>Engine: construit le moteur avec ses dépendances
+    Engine->>Fetcher: fetch(symbol, timeframe, limit)
+    Fetcher-->>Engine: OHLCVData
+    Engine->>Calc: calculate(OHLCVData)
+    Calc-->>Engine: DataFrame enrichi
+    Engine->>Rules: evaluate(...)
+    Rules-->>Engine: Alert ou None
+    alt alerte déclenchée
+        Engine->>Chart: generate(data, enriched_df, path)
+        Chart-->>Engine: chemin du PNG
+        Engine->>Notify: send_chart(alert, chart_path)
+    else aucune alerte
+        Engine->>Notify: send(alert) si besoin
+    end
+```
+
+## Version courte pour GitHub
+
+- Entrée : [src/engine/runner.py](../src/engine/runner.py)
+- Orchestration : [src/alerts/alert_engine.py](../src/alerts/alert_engine.py)
+- Règles : [src/alerts/alert_rules.py](../src/alerts/alert_rules.py)
+- Données : [src/fetchers/binance_fetcher.py](../src/fetchers/binance_fetcher.py)
+- Indicateurs : [src/indicators/technical_indicators.py](../src/indicators/technical_indicators.py)
+- Graphiques : [src/charts/chart_generator.py](../src/charts/chart_generator.py)
+- Notifications : [src/notifiers/discord_notifier.py](../src/notifiers/discord_notifier.py)
+
 ## Résumé architectural
 
 Le projet est construit autour d’un moteur central qui dépend d’abstractions plutôt que de classes concrètes. Cela permet de :
