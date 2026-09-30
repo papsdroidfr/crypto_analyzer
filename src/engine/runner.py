@@ -8,7 +8,6 @@ Usage :
   python -m src.engine.runner daily  --no-notifier # Test sans envoi Discord
   python -m src.engine.runner hourly --no-notifier # Test sans envoi Discord
 
-Principe D : l'assemblage des dépendances est ici (composition root).
 """
 
 import argparse

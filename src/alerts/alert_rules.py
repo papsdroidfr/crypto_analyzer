@@ -4,11 +4,7 @@ alert_rules.py — Règles d'alerte paramétrables.
 Architecture :
   • IAlertRule                : contrat abstrait (interfaces.py)
   • ThresholdAlertRule        : règle générique configurable
-  • ThresholdAlertRule         : règle générique configurable
 
-Principe O : ajouter une règle = créer une classe ou une configuration JSON,
-sans modifier le moteur.
-Principe I : les règles ne dépendent que de IAlertRule, pas du reste du système.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Formats supportés par ThresholdAlertRule :
@@ -90,15 +86,6 @@ Croisement de moyennes mobiles :
     ]
   }
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Compatibilité :
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-- Le format legacy reste supporté.
-- Les conditions inter-bougies rendent possibles les rules
-  `BollingerBounceRule` et `BollingerUpperBounceRule` en JSON,
-  sans code dédié.
-- Les variations horaires se modélisent simplement via ThresholdAlertRule
-  avec une condition de comparaison sur deux bougies consécutives.
 """
 
 import logging
@@ -374,10 +361,6 @@ class AlertRuleRegistry:
         """Instancie une règle par son nom."""
         if rule_name == "hourly_variation":
             return ThresholdAlertRule(rule_name)
-        if rule_name == "bollinger_bounce":
-            return BollingerBounceRule()
-        if rule_name == "bollinger_upper_bounce":
-            return BollingerUpperBounceRule()
         cls = self._rules.get(rule_name)
         if cls is None:
             logger.debug("Règle '%s' non enregistrée → ThresholdAlertRule.", rule_name)
