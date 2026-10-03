@@ -6,7 +6,9 @@
     "ETHUSDC",
     "SOLUSDC",
     "TAOUSDC",
-    "BNBUSDC"
+    "BNBUSDC",
+    "LTCUSDC",
+    "HYPEUSDC"
   ],
 
   "timeframes": [
@@ -80,29 +82,9 @@
       ]
     },
 
-    {
-      "_comment": "Compression de Bollinger (faible volatilité, breakout imminent)",
-      "name": "bollinger_squeeze",
-      "type": "threshold",
-      "timeframes": [
-        "1d"
-      ],
-      "lookback_periods": 1,
-      "severity": "INFO",
-      "message_tpl": "🔀 Compression Bollinger sur {symbol} [{tf}] — Width={bb_width}",
-      "conditions": [
-        {
-          "indicator": "bb_width",
-          "operator": "<",
-          "value": 0.05,
-          "agg": "last"
-        }
-      ]
-    },
-
 
     {
-      "name": "bollinger_bounce",
+      "name": "bollinger rebond basse",
       "type": "threshold",
       "timeframes": ["1d"],
       "severity": "CRITICAL",
@@ -124,6 +106,33 @@
           "right": { "indicator": "close", "offset": 1 }
         }
       ]
+    },
+
+    {
+      "name": "bollinger rebond haute",
+      "type": "threshold",
+      "timeframes": ["1d"],
+      "severity": "CRITICAL",
+      "message_tpl": "⚡️ Rebond sur la bande de Bollinger supérieure sur {symbol} [{tf}] — Close={close}, BB_Upper={bb_upper}",
+      "conditions": [
+        {
+          "left": { "indicator": "close", "offset": 1 },
+          "operator": ">",
+          "right": { "indicator": "bb_upper", "offset": 1 }
+        },
+        {
+          "left": { "indicator": "close", "offset": 0 },
+          "operator": "<",
+          "right": { "indicator": "bb_upper", "offset": 0 }
+        },
+        {
+          "left": { "indicator": "close", "offset": 0 },
+          "operator": "<",
+          "right": { "indicator": "close", "offset": 1 }
+        }
+      ]
     }
+
   ]
 }
+
