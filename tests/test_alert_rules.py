@@ -30,6 +30,28 @@ def test_threshold_alert_triggers():
     assert alert.severity == "CRITICAL"
 
 
+def test_offset_rule_exposes_current_indicator_in_message_context():
+    df = pl.DataFrame({"macd_hist": [-0.5, 0.25]})
+    rule = ThresholdAlertRule("macd_rising")
+    symbol = Symbol("BTCUSDC")
+    tf = Timeframe(value="1d", label="1d", candles_chart=7)
+    params = {
+        "conditions": [
+            {
+                "left": {"indicator": "macd_hist", "offset": 0},
+                "operator": ">",
+                "right": {"indicator": "macd_hist", "offset": 1},
+            }
+        ],
+        "message_tpl": "MACD={macd_hist}",
+    }
+
+    alert = rule.evaluate(symbol, tf, df, params)
+
+    assert alert is not None
+    assert alert.message == "MACD=0.2500"
+
+
 def test_threshold_no_conditions_returns_none():
     df = make_df([1, 2, 3], columns=["rsi_14"]) 
     rule = ThresholdAlertRule("empty")

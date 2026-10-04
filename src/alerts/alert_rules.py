@@ -215,9 +215,13 @@ class AlertCondition:
             if self.left.indicator is not None:
                 key = f"{self.left.indicator}_{self.left.offset}"
                 context_values[key] = float(left_value)
+                if self.left.offset == 0:
+                    context_values[self.left.indicator] = float(left_value)
             if self.right.indicator is not None:
                 key = f"{self.right.indicator}_{self.right.offset}"
                 context_values[key] = float(right_value)
+                if self.right.offset == 0:
+                    context_values[self.right.indicator] = float(right_value)
 
         return fn(left_value, right_value), context_values
     

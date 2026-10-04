@@ -24,6 +24,6 @@ def test_calculate_adds_columns():
     calc = TechnicalIndicatorCalculator()
     enriched = calc.calculate(data)
     # Expect indicator columns to exist
-    for col in ["sma_7", "sma_30", "rsi_14", "macd_line", "bb_upper", "bb_pct_b"]:
+    for col in ["sma_7", "sma_30", "rsi_14", "macd_hist", "bb_upper", "bb_pct_b"]:
         assert col in enriched.columns
     assert len(enriched) == len(df)

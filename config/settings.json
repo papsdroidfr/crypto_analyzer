@@ -32,7 +32,7 @@
   "charts_output_dir": "charts_output",
 
   "discord": {
-    "webhook_url": "MON WEBHOOK DISCORD ICI",
+    "webhook_url": "MON WEBHOOK ICI",
     "username": "CryptoAnalyzer 🤖"
   },
 
