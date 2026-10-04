@@ -170,6 +170,8 @@ Points de configuration importants :
 - `symbols` : paires à surveiller
 - `timeframes` : périodes de temps utilisées
 - `discord.webhook_url` : webhook Discord pour les notifications
+- `discord.bot_token` : token du bot Discord utilisé par le script de nettoyage
+- `discord.channel_id` : identifiant du salon ou du fil ciblé par le script de nettoyage
 - `alerts` : règles d’alerte à appliquer
 - `hourly_variation` : paramètres de la surveillance horaire
 
@@ -183,7 +185,9 @@ Points de configuration importants :
     {"value": "1d", "label": "1 jour", "candles_chart": 90}
   ],
   "discord": {
-    "webhook_url": "https://discord.com/api/webhooks/...
+        "webhook_url": "https://discord.com/api/webhooks/...",
+      "bot_token": "VOTRE_TOKEN_DE_BOT",
+      "channel_id": "ID_DU_SALON"
   },
   "alerts": [
     {
@@ -215,6 +219,22 @@ Exemples de lancement :
 python -m src.engine.runner daily
 python -m src.engine.runner hourly
 python -m src.engine.runner chart BTCUSDC 1d
+```
+
+## Nettoyage des messages Discord
+
+Le script `scripts/clean_discord_messages.py` supprime les messages anciens envoyés par le webhook configuré dans `discord.webhook_url`. Il utilise l'API Discord avec un token de bot, car un webhook seul ne peut pas parcourir l'historique.
+
+Le bot doit avoir accès à l'historique du salon ou du fil et la permission de gérer les messages. Renseignez son token dans `discord.bot_token` du fichier de configuration, puis lancez d'abord une simulation :
+
+```bash
+python scripts/clean_discord_messages.py --dry-run
+```
+
+Sans `--dry-run`, les messages de plus de 7 jours sont supprimés. Modifiez cette durée avec `--days` :
+
+```bash
+python scripts/clean_discord_messages.py --days 14
 ```
 
 ## Notes

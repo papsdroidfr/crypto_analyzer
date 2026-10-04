@@ -32,8 +32,10 @@
   "charts_output_dir": "charts_output",
 
   "discord": {
-    "webhook_url": "MON WEBHOOK ICI",
-    "username": "CryptoAnalyzer 🤖"
+    "webhook_url": "MON WEBHOOK DISCORD ICI",
+    "bot_token": "MON TOKEN BOT DISCORD ICI",
+    "username": "CryptoAnalyzer 🤖",
+    "channel_id": "MON CHANNEL ID DISCORD ICI"
   },
 
   "hourly_variation": {
