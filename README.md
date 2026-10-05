@@ -237,6 +237,22 @@ Sans `--dry-run`, les messages de plus de 7 jours sont supprimés. Modifiez cett
 python scripts/clean_discord_messages.py --days 14
 ```
 
+## Nettoyage des fichiers de log
+
+Le script `scripts/clean_old_logs.py` supprime les fichiers `*.log` du dossier `logs` du projet dont la date de dernière modification dépasse la durée indiquée. Il supprime les logs de plus de 7 jours par défaut et ne supprime pas les autres types de fichiers.
+
+```bash
+python scripts/clean_old_logs.py
+```
+
+Utilisez `--days` pour définir une autre durée de rétention, en jours. La valeur doit être un entier strictement positif :
+
+```bash
+python scripts/clean_old_logs.py --days 14
+```
+
+Le chemin du dossier `logs` est déterminé à partir de l'emplacement du script ; la commande peut donc être lancée depuis un autre répertoire.
+
 ## Notes
 
 Le projet est pensé pour être extensible : il est possible d’ajouter de nouveaux fetchers, indicateurs, règles d’alerte ou canaux de notification sans modifier le cœur du moteur.
