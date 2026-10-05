@@ -13,17 +13,21 @@ Usage :
 import argparse
 import logging
 import sys
+from datetime import date
 from pathlib import Path
 
 # ---------------------------------------------------------------------------
 # Logging configuré tôt pour capturer les imports
 # ---------------------------------------------------------------------------
+Path("logs").mkdir(parents=True, exist_ok=True)
+log_file = Path("logs") / f"crypto_analyzer_{date.today().isoformat()}.log"
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(name)s — %(message)s",
     handlers=[
         logging.StreamHandler(sys.stdout),
-        logging.FileHandler("logs/crypto_analyzer.log"),
+        logging.FileHandler(log_file),
     ],
 )
 logger = logging.getLogger(__name__)
