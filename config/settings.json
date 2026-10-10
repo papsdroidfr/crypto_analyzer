@@ -79,7 +79,7 @@
           "indicator": "rsi_7",
           "operator": "<",
           "value": 20,
-          "agg": "min"
+          "agg": "max"
         }
       ]
     },
@@ -93,7 +93,7 @@
       "message_tpl": "⚡️ Rebond sur la bande de Bollinger inférieure sur {symbol} [{tf}] — Close={close}, BB_Lower={bb_lower}",
       "conditions": [
         {
-          "left": { "indicator": "close", "offset": 1 },
+          "left": { "indicator": "low", "offset": 1 },
           "operator": "<",
           "right": { "indicator": "bb_lower", "offset": 1 }
         },
@@ -118,7 +118,7 @@
       "message_tpl": "⚡️ Rebond sur la bande de Bollinger supérieure sur {symbol} [{tf}] — Close={close}, BB_Upper={bb_upper}",
       "conditions": [
         {
-          "left": { "indicator": "close", "offset": 1 },
+          "left": { "indicator": "high", "offset": 1 },
           "operator": ">",
           "right": { "indicator": "bb_upper", "offset": 1 }
         },
