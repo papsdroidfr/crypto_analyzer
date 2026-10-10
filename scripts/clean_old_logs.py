@@ -1,32 +1,41 @@
 #!/usr/bin/env python3
-"""Supprime les fichiers de log plus anciens que la durée indiquée."""
+"""Supprime les anciens fichiers de log et graphiques."""
 
 import argparse
 import time
 from pathlib import Path
 
 LOG_DIR = Path(__file__).resolve().parents[1] / "logs"
+CHARTS_DIR = Path(__file__).resolve().parents[1] / "charts_output"
 
 
-def clean_logs(log_dir: Path, days: int) -> int:
+def clean_old_files(directory: Path, pattern: str, days: int) -> int:
     cutoff = time.time() - days * 24 * 60 * 60
     removed = 0
 
-    if not log_dir.is_dir():
+    if not directory.is_dir():
         return removed
 
-    for log_file in log_dir.glob("*.log"):
-        if log_file.is_file() and log_file.stat().st_mtime < cutoff:
-            log_file.unlink()
-            print(f"Supprimé : {log_file.name}")
+    for file_path in directory.glob(pattern):
+        if file_path.is_file() and file_path.stat().st_mtime < cutoff:
+            file_path.unlink()
+            print(f"Supprimé : {file_path.name}")
             removed += 1
 
     return removed
 
 
+def clean_logs(log_dir: Path, days: int) -> int:
+    return clean_old_files(log_dir, "*.log", days)
+
+
+def clean_charts(charts_dir: Path, days: int) -> int:
+    return clean_old_files(charts_dir, "*.png", days)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Supprime les fichiers de log anciens du dossier logs."
+        description="Supprime les anciens fichiers de log et graphiques."
     )
     parser.add_argument(
         "--days",
@@ -39,8 +48,13 @@ def main() -> None:
     if args.days <= 0:
         parser.error("--days doit être strictement positif.")
 
-    removed = clean_logs(LOG_DIR, args.days)
-    print(f"Nettoyage terminé : {removed} fichier(s) supprimé(s).")
+    removed_logs = clean_logs(LOG_DIR, args.days)
+    removed_charts = clean_charts(CHARTS_DIR, args.days)
+    total_removed = removed_logs + removed_charts
+    print(
+        f"Nettoyage terminé : {total_removed} fichier(s) supprimé(s) "
+        f"(logs : {removed_logs}, graphiques : {removed_charts})."
+    )
 
 
 if __name__ == "__main__":

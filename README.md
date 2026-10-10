@@ -239,7 +239,7 @@ python scripts/clean_discord_messages.py --days 14
 
 ## Nettoyage des fichiers de log
 
-Le script `scripts/clean_old_logs.py` supprime les fichiers `*.log` du dossier `logs` du projet dont la date de dernière modification dépasse la durée indiquée. Il supprime les logs de plus de 7 jours par défaut et ne supprime pas les autres types de fichiers.
+Le script `scripts/clean_old_logs.py` supprime les fichiers `*.log` du dossier `logs` et les graphiques `*.png` du dossier `charts_output` dont la date de dernière modification dépasse la durée indiquée. Il supprime les fichiers de plus de 7 jours par défaut et ne supprime pas les autres types de fichiers.
 
 ```bash
 python scripts/clean_old_logs.py
@@ -251,7 +251,7 @@ Utilisez `--days` pour définir une autre durée de rétention, en jours. La val
 python scripts/clean_old_logs.py --days 14
 ```
 
-Le chemin du dossier `logs` est déterminé à partir de l'emplacement du script ; la commande peut donc être lancée depuis un autre répertoire.
+Les chemins des dossiers `logs` et `charts_output` sont déterminés à partir de l'emplacement du script ; la commande peut donc être lancée depuis un autre répertoire.
 
 ## Notes
 
