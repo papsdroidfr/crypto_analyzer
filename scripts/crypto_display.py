@@ -144,7 +144,6 @@ class CryptoAppController:
         return False
 
     def run(self):
-        cpu_temp = self.system_monitor.get_cpu_temperature()
 
         # Vérification de la plage horaire nocturne (extinction de l'écran)
         if self._is_night_time():
@@ -153,6 +152,8 @@ class CryptoAppController:
 
         # Réveil de l'écran si l'on sort de la période nocturne
         self.renderer.power_on()
+        
+        cpu_temp = self.system_monitor.get_cpu_temperature()
 
         try:
             market_data = self.binance_client.fetch_market_data()
