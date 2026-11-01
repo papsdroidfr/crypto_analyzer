@@ -31,25 +31,22 @@ class BinanceClient:
         self.symbols = symbols
 
     def fetch_market_data(self) -> dict[str, dict]:
-        """Récupère les données pour les paires configurées."""
+        """Récupère les données pour les paires configurées. 
+        Lève une exception en cas de problème réseau.
+        """
         data = {}
-        try:
-            # Appel global pour récupérer les tickers en une seule requête HTTP
-            response = requests.get(self.BASE_URL, timeout=5)
-            response.raise_for_status()
-            market_data = {item['symbol']: item for item in response.json()}
+        # Lève requests.RequestException en cas de timeout ou d'absence de réseau
+        response = requests.get(self.BASE_URL, timeout=5)
+        response.raise_for_status()
+        market_data = {item['symbol']: item for item in response.json()}
 
-            for symbol in self.symbols:
-                if symbol in market_data:
-                    ticker = market_data[symbol]
-                    data[symbol] = {
-                        "price": float(ticker['lastPrice']),
-                        "price_change_percent": float(ticker['priceChangePercent'])
-                    }
-        except Exception as e:
-            # En mode headless/cron, l'erreur peut être redirigée vers les logs système
-            print(f"Erreur lors de la récupération Binance : {e}")
-        
+        for symbol in self.symbols:
+            if symbol in market_data:
+                ticker = market_data[symbol]
+                data[symbol] = {
+                    "price": float(ticker['lastPrice']),
+                    "price_change_percent": float(ticker['priceChangePercent'])
+                }
         return data
 
 class OLEDRenderer:
@@ -74,7 +71,7 @@ class OLEDRenderer:
             self.font = None
 
     def display_market_status(self, market_data: dict[str, dict], cpu_temp: float):
-        """Génère l'image et l'affiche sur l'écran."""
+        """Génère l'image des marchés et l'affiche sur l'écran."""
         image = Image.new("1", (self.width, self.height))
         draw = ImageDraw.Draw(image)
 
@@ -89,7 +86,6 @@ class OLEDRenderer:
         # Lignes suivantes : Paires de cryptomonnaies (max 5 lignes)
         y_offset = 13
         for symbol, info in market_data.items():
-            # Retrait de 'USDC' pour alléger l'affichage
             short_name = symbol.replace("USDC", "")
             price = info["price"]
             change = info["price_change_percent"]
@@ -108,7 +104,26 @@ class OLEDRenderer:
             draw.text((0, y_offset), line_text, font=self.font, fill=255)
             y_offset += 10
 
-        # Envoi de l'image bufferisée vers l'écran OLED
+        self.disp.image(image)
+        self.disp.show()
+
+    def display_offline_status(self, cpu_temp: float):
+        """Affiche un écran d'alerte en cas de perte de connexion réseau."""
+        image = Image.new("1", (self.width, self.height))
+        draw = ImageDraw.Draw(image)
+
+        # Ligne 1 : Date, heure et température du Raspberry Pi
+        now_str = datetime.now().strftime("%d/%m %H:%M")
+        header_text = f"{now_str} | {cpu_temp:.1f}°C"
+        draw.text((0, 0), header_text, font=self.font, fill=255)
+        
+        # Ligne de séparation
+        draw.line((0, 10, self.width, 10), fill=255)
+
+        # Message d'avertissement centré / répété verticalement
+        draw.text((10, 22), "! PAS DE RESEAU !", font=self.font, fill=255)
+        draw.text((14, 38), "Connexion perdue", font=self.font, fill=255)
+
         self.disp.image(image)
         self.disp.show()
 
@@ -122,10 +137,15 @@ class CryptoAppController:
         self.system_monitor = SystemMonitor()
 
     def run(self):
-        market_data = self.binance_client.fetch_market_data()
         cpu_temp = self.system_monitor.get_cpu_temperature()
-        if market_data:
-            self.renderer.display_market_status(market_data, cpu_temp)
+        try:
+            market_data = self.binance_client.fetch_market_data()
+            if market_data:
+                self.renderer.display_market_status(market_data, cpu_temp)
+        except Exception as e:
+            # En cas d'erreur de connexion ou d'API, on bascule sur l'affichage hors-ligne
+            print(f"Mode hors-ligne activé (Erreur: {e})")
+            self.renderer.display_offline_status(cpu_temp)
 
 if __name__ == "__main__":
     app = CryptoAppController()
