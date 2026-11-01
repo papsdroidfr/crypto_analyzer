@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-from datetime import datetime
+from datetime import datetime, time
 import os
 import requests
 from PIL import Image, ImageDraw, ImageFont
@@ -31,11 +31,8 @@ class BinanceClient:
         self.symbols = symbols
 
     def fetch_market_data(self) -> dict[str, dict]:
-        """Récupère les données pour les paires configurées. 
-        Lève une exception en cas de problème réseau.
-        """
+        """Récupère les données pour les paires configurées."""
         data = {}
-        # Lève requests.RequestException en cas de timeout ou d'absence de réseau
         response = requests.get(self.BASE_URL, timeout=5)
         response.raise_for_status()
         market_data = {item['symbol']: item for item in response.json()}
@@ -58,39 +55,41 @@ class OLEDRenderer:
         
         # Initialisation I2C et écran
         i2c = board.I2C()
-        # Adresse I2C par défaut du SSD1306 : 0x3C
         self.disp = adafruit_ssd1306.SSD1306_I2C(width, height, i2c, addr=0x3C)
         
         self.disp.fill(0)
         self.disp.show()
 
-        # Chargement d'une police système par défaut
         try:
             self.font = ImageFont.load_default()
         except Exception:
             self.font = None
+
+    def power_off(self):
+        """Éteint complètement l'écran OLED (mode veille basse consommation)."""
+        self.disp.power_off()
+
+    def power_on(self):
+        """Rallume l'écran OLED."""
+        self.disp.power_on()
 
     def display_market_status(self, market_data: dict[str, dict], cpu_temp: float):
         """Génère l'image des marchés et l'affiche sur l'écran."""
         image = Image.new("1", (self.width, self.height))
         draw = ImageDraw.Draw(image)
 
-        # Ligne 1 : Date, heure et température du Raspberry Pi
         now_str = datetime.now().strftime("%d/%m %H:%M")
         header_text = f"{now_str} | {cpu_temp:.1f}°C"
         draw.text((0, 0), header_text, font=self.font, fill=255)
         
-        # Ligne de séparation
         draw.line((0, 10, self.width, 10), fill=255)
 
-        # Lignes suivantes : Paires de cryptomonnaies (max 5 lignes)
         y_offset = 13
         for symbol, info in market_data.items():
             short_name = symbol.replace("USDC", "")
             price = info["price"]
             change = info["price_change_percent"]
 
-            # Formatage dynamique du prix selon sa valeur
             if price < 1:
                 price_str = f"{price:.4f}"
             elif price < 10:
@@ -112,15 +111,12 @@ class OLEDRenderer:
         image = Image.new("1", (self.width, self.height))
         draw = ImageDraw.Draw(image)
 
-        # Ligne 1 : Date, heure et température du Raspberry Pi
         now_str = datetime.now().strftime("%d/%m %H:%M")
         header_text = f"{now_str} | {cpu_temp:.1f}°C"
         draw.text((0, 0), header_text, font=self.font, fill=255)
         
-        # Ligne de séparation
         draw.line((0, 10, self.width, 10), fill=255)
 
-        # Message d'avertissement centré / répété verticalement
         draw.text((10, 22), "! PAS DE RESEAU !", font=self.font, fill=255)
         draw.text((14, 38), "Connexion perdue", font=self.font, fill=255)
 
@@ -136,14 +132,33 @@ class CryptoAppController:
         self.renderer = OLEDRenderer()
         self.system_monitor = SystemMonitor()
 
+    def _is_night_time(self) -> bool:
+        """Vérifie si l'heure actuelle est comprise entre 22h30 et 7h00."""
+        now = datetime.now().time()
+        start_night = time(22, 30)
+        end_night = time(7, 0)
+        
+        # Gestion de la plage horaire traversant minuit
+        if start_night <= now or now < end_night:
+            return True
+        return False
+
     def run(self):
         cpu_temp = self.system_monitor.get_cpu_temperature()
+
+        # Vérification de la plage horaire nocturne (extinction de l'écran)
+        if self._is_night_time():
+            self.renderer.power_off()
+            return
+
+        # Réveil de l'écran si l'on sort de la période nocturne
+        self.renderer.power_on()
+
         try:
             market_data = self.binance_client.fetch_market_data()
             if market_data:
                 self.renderer.display_market_status(market_data, cpu_temp)
         except Exception as e:
-            # En cas d'erreur de connexion ou d'API, on bascule sur l'affichage hors-ligne
             print(f"Mode hors-ligne activé (Erreur: {e})")
             self.renderer.display_offline_status(cpu_temp)
 
