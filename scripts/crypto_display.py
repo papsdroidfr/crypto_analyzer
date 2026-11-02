@@ -5,9 +5,8 @@ from datetime import datetime, time
 import os
 import requests
 from PIL import Image, ImageDraw, ImageFont
-import board
-import digitalio
-import adafruit_ssd1306
+from luma.core.interface.serial import i2c
+from luma.oled.device import sh1106
 
 class SystemMonitor:
     """Gère la lecture des capteurs système du Raspberry Pi."""
@@ -47,18 +46,12 @@ class BinanceClient:
         return data
 
 class OLEDRenderer:
-    """Gère l'affichage des données sur l'écran OLED SSD1306 128x64 I2C."""
+    """Gère l'affichage des données sur l'écran OLED SH1106 128x64 I2C (1.3 pouces) via luma.oled."""
 
-    def __init__(self, width: int = 128, height: int = 64):
-        self.width = width
-        self.height = height
-        
-        # Initialisation I2C et écran
-        i2c = board.I2C()
-        self.disp = adafruit_ssd1306.SSD1306_I2C(width, height, i2c, addr=0x3C)
-        
-        self.disp.fill(0)
-        self.disp.show()
+    def __init__(self, port: int = 1, address: int = 0x3C):
+        # Initialisation de la liaison série I2C et du périphérique SH1106
+        self.serial = i2c(port=port, address=address)
+        self.device = sh1106(self.serial, width=128, height=64)
 
         try:
             self.font = ImageFont.load_default()
@@ -66,23 +59,23 @@ class OLEDRenderer:
             self.font = None
 
     def power_off(self):
-        """Éteint complètement l'écran OLED (mode veille basse consommation)."""
-        self.disp.poweroff()
+        """Éteint complètement l'écran OLED (veille)."""
+        self.device.hide()
 
     def power_on(self):
         """Rallume l'écran OLED."""
-        self.disp.poweron()
+        self.device.show()
 
     def display_market_status(self, market_data: dict[str, dict], cpu_temp: float):
         """Génère l'image des marchés et l'affiche sur l'écran."""
-        image = Image.new("1", (self.width, self.height))
+        image = Image.new("1", (self.device.width, self.device.height))
         draw = ImageDraw.Draw(image)
 
         now_str = datetime.now().strftime("%d/%m %H:%M")
         header_text = f"{now_str} | {cpu_temp:.1f}°C"
         draw.text((0, 0), header_text, font=self.font, fill=255)
         
-        draw.line((0, 10, self.width, 10), fill=255)
+        draw.line((0, 10, self.device.width, 10), fill=255)
 
         y_offset = 13
         for symbol, info in market_data.items():
@@ -103,25 +96,24 @@ class OLEDRenderer:
             draw.text((0, y_offset), line_text, font=self.font, fill=255)
             y_offset += 10
 
-        self.disp.image(image)
-        self.disp.show()
+        # Envoi de l'image sur l'écran luma
+        self.device.display(image)
 
     def display_offline_status(self, cpu_temp: float):
         """Affiche un écran d'alerte en cas de perte de connexion réseau."""
-        image = Image.new("1", (self.width, self.height))
+        image = Image.new("1", (self.device.width, self.device.height))
         draw = ImageDraw.Draw(image)
 
         now_str = datetime.now().strftime("%d/%m %H:%M")
         header_text = f"{now_str} | {cpu_temp:.1f}°C"
         draw.text((0, 0), header_text, font=self.font, fill=255)
         
-        draw.line((0, 10, self.width, 10), fill=255)
+        draw.line((0, 10, self.device.width, 10), fill=255)
 
         draw.text((10, 22), "! PAS DE RESEAU !", font=self.font, fill=255)
         draw.text((14, 38), "Connexion perdue", font=self.font, fill=255)
 
-        self.disp.image(image)
-        self.disp.show()
+        self.device.display(image)
 
 class CryptoAppController:
     """Orchestre l'ensemble du processus de récupération et d'affichage."""
@@ -137,24 +129,19 @@ class CryptoAppController:
         now = datetime.now().time()
         start_night = time(22, 30)
         end_night = time(7, 0)
-        #print(f"Vérification de l'heure: {now}, plage nocturne: {start_night} - {end_night}")
         
-        # Gestion de la plage horaire traversant minuit
         if start_night <= now or now < end_night:
             return True
         return False
 
     def run(self):
+        cpu_temp = self.system_monitor.get_cpu_temperature()
 
-        # Vérification de la plage horaire nocturne (extinction de l'écran)
         if self._is_night_time():
             self.renderer.power_off()
             return
 
-        # Réveil de l'écran si l'on sort de la période nocturne
         self.renderer.power_on()
-        
-        cpu_temp = self.system_monitor.get_cpu_temperature()
 
         try:
             market_data = self.binance_client.fetch_market_data()
