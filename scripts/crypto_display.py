@@ -67,11 +67,11 @@ class OLEDRenderer:
 
     def power_off(self):
         """Éteint complètement l'écran OLED (mode veille basse consommation)."""
-        self.disp.power_off()
+        self.disp.poweroff()
 
     def power_on(self):
         """Rallume l'écran OLED."""
-        self.disp.power_on()
+        self.disp.poweron()
 
     def display_market_status(self, market_data: dict[str, dict], cpu_temp: float):
         """Génère l'image des marchés et l'affiche sur l'écran."""
@@ -137,6 +137,7 @@ class CryptoAppController:
         now = datetime.now().time()
         start_night = time(22, 30)
         end_night = time(7, 0)
+        #print(f"Vérification de l'heure: {now}, plage nocturne: {start_night} - {end_night}")
         
         # Gestion de la plage horaire traversant minuit
         if start_night <= now or now < end_night:
