@@ -2,10 +2,10 @@
 # -*- coding: utf-8 -*-
 
 from datetime import datetime, time
-import os
+import time as t_module
 import requests
-from PIL import Image, ImageDraw, ImageFont
 from luma.core.interface.serial import i2c
+from luma.core.render import canvas
 from luma.oled.device import sh1106
 
 class SystemMonitor:
@@ -46,17 +46,11 @@ class BinanceClient:
         return data
 
 class OLEDRenderer:
-    """Gère l'affichage des données sur l'écran OLED SH1106 128x64 I2C (1.3 pouces) via luma.oled."""
+    """Gère l'affichage des données sur l'écran SH1106 1.3' via luma.oled et canvas."""
 
     def __init__(self, port: int = 1, address: int = 0x3C):
-        # Initialisation de la liaison série I2C et du périphérique SH1106
         self.serial = i2c(port=port, address=address)
-        self.device = sh1106(self.serial, width=128, height=64)
-
-        try:
-            self.font = ImageFont.load_default()
-        except Exception:
-            self.font = None
+        self.device = sh1106(self.serial, width=128, height=64, rotate=0)
 
     def power_off(self):
         """Éteint complètement l'écran OLED (veille)."""
@@ -67,56 +61,47 @@ class OLEDRenderer:
         self.device.show()
 
     def display_market_status(self, market_data: dict[str, dict], cpu_temp: float):
-        """Génère l'image des marchés et l'affiche sur l'écran."""
-        image = Image.new("1", (self.device.width, self.device.height))
-        draw = ImageDraw.Draw(image)
+        """Génère l'affichage des marchés à l'aide du gestionnaire canvas."""
+        with canvas(self.device) as draw:
+            now_str = datetime.now().strftime("%d/%m %H:%M")
+            header_text = f"{now_str} | {cpu_temp:.1f}°C"
+            draw.text((0, 0), header_text, fill="white")
+            
+            draw.line((0, 10, self.device.width, 10), fill="white")
 
-        now_str = datetime.now().strftime("%d/%m %H:%M")
-        header_text = f"{now_str} | {cpu_temp:.1f}°C"
-        draw.text((0, 0), header_text, font=self.font, fill=255)
-        
-        draw.line((0, 10, self.device.width, 10), fill=255)
+            y_offset = 13
+            for symbol, info in market_data.items():
+                short_name = symbol.replace("USDC", "")
+                price = info["price"]
+                change = info["price_change_percent"]
 
-        y_offset = 13
-        for symbol, info in market_data.items():
-            short_name = symbol.replace("USDC", "")
-            price = info["price"]
-            change = info["price_change_percent"]
+                if price < 1:
+                    price_str = f"{price:.4f}"
+                elif price < 10:
+                    price_str = f"{price:.3f}"
+                elif price < 1000:
+                    price_str = f"{price:.2f}"
+                else:
+                    price_str = f"{int(price):,}".replace(",", " ")
 
-            if price < 1:
-                price_str = f"{price:.4f}"
-            elif price < 10:
-                price_str = f"{price:.3f}"
-            elif price < 1000:
-                price_str = f"{price:.2f}"
-            else:
-                price_str = f"{int(price):,}".replace(",", " ")
-
-            line_text = f"{short_name:<5} {price_str} ({change:+.1f}%)"
-            draw.text((0, y_offset), line_text, font=self.font, fill=255)
-            y_offset += 10
-
-        # Envoi de l'image sur l'écran luma
-        self.device.display(image)
+                line_text = f"{short_name:<5} {price_str} ({change:+.1f}%)"
+                draw.text((0, y_offset), line_text, fill="white")
+                y_offset += 10
 
     def display_offline_status(self, cpu_temp: float):
         """Affiche un écran d'alerte en cas de perte de connexion réseau."""
-        image = Image.new("1", (self.device.width, self.device.height))
-        draw = ImageDraw.Draw(image)
+        with canvas(self.device) as draw:
+            now_str = datetime.now().strftime("%d/%m %H:%M")
+            header_text = f"{now_str} | {cpu_temp:.1f}°C"
+            draw.text((0, 0), header_text, fill="white")
+            
+            draw.line((0, 10, self.device.width, 10), fill="white")
 
-        now_str = datetime.now().strftime("%d/%m %H:%M")
-        header_text = f"{now_str} | {cpu_temp:.1f}°C"
-        draw.text((0, 0), header_text, font=self.font, fill=255)
-        
-        draw.line((0, 10, self.device.width, 10), fill=255)
-
-        draw.text((10, 22), "! PAS DE RESEAU !", font=self.font, fill=255)
-        draw.text((14, 38), "Connexion perdue", font=self.font, fill=255)
-
-        self.device.display(image)
+            draw.text((10, 22), "! PAS DE RESEAU !", fill="white")
+            draw.text((14, 38), "Connexion perdue", fill="white")
 
 class CryptoAppController:
-    """Orchestre l'ensemble du processus de récupération et d'affichage."""
+    """Orchestre la boucle continue de récupération et d'affichage."""
 
     def __init__(self):
         self.symbols = ["BTCUSDC", "ETHUSDC", "NEARUSDC", "TAOUSDC", "HYPEUSDC"]
@@ -134,23 +119,34 @@ class CryptoAppController:
             return True
         return False
 
-    def run(self):
-        cpu_temp = self.system_monitor.get_cpu_temperature()
+    def run_loop(self):
+        """Exécute la boucle infinie de mise à jour toutes les 5 minutes."""
+        print("Démarrage du service d'affichage crypto en continu...")
+        while True:
+            try:
+                cpu_temp = self.system_monitor.get_cpu_temperature()
 
-        if self._is_night_time():
-            self.renderer.power_off()
-            return
-
-        self.renderer.power_on()
-
-        try:
-            market_data = self.binance_client.fetch_market_data()
-            if market_data:
-                self.renderer.display_market_status(market_data, cpu_temp)
-        except Exception as e:
-            print(f"Mode hors-ligne activé (Erreur: {e})")
-            self.renderer.display_offline_status(cpu_temp)
+                if self._is_night_time():
+                    self.renderer.power_off()
+                else:
+                    self.renderer.power_on()
+                    try:
+                        market_data = self.binance_client.fetch_market_data()
+                        if market_data:
+                            self.renderer.display_market_status(market_data, cpu_temp)
+                    except Exception as e:
+                        print(f"Mode hors-ligne activé (Erreur: {e})")
+                        self.renderer.display_offline_status(cpu_temp)
+                
+                # Attente de 5 minutes (300 secondes) avant la prochaine actualisation
+                t_module.sleep(300)
+            except KeyboardInterrupt:
+                print("Arrêt demandé par l'utilisateur.")
+                break
+            except Exception as e:
+                print(f"Erreur inattendue dans la boucle : {e}")
+                t_module.sleep(30)
 
 if __name__ == "__main__":
     app = CryptoAppController()
-    app.run()
+    app.run_loop()
