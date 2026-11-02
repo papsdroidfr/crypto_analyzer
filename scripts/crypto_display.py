@@ -61,11 +61,17 @@ class OLEDRenderer:
         self.device.show()
 
     def display_market_status(self, market_data: dict[str, dict], cpu_temp: float):
-        """Génère l'affichage des marchés à l'aide du gestionnaire canvas."""
+        """Génère l'affichage optimisé des marchés avec colonnes alignées."""
         with canvas(self.device) as draw:
+            # Ligne d'en-tête : Date à gauche, | au centre (x=61), Température à droite
             now_str = datetime.now().strftime("%d/%m %H:%M")
-            header_text = f"{now_str} | {cpu_temp:.1f}°C"
-            draw.text((0, 0), header_text, fill="white")
+            temp_str = f"{cpu_temp:.1f}°C"
+            
+            draw.text((0, 0), now_str, fill="white")
+            draw.text((61, 0), "|", fill="white")
+            
+            temp_x = 128 - (len(temp_str) * 6)
+            draw.text((temp_x, 0), temp_str, fill="white")
             
             draw.line((0, 10, self.device.width, 10), fill="white")
 
@@ -74,6 +80,9 @@ class OLEDRenderer:
                 short_name = symbol.replace("USDC", "")
                 price = info["price"]
                 change = info["price_change_percent"]
+
+                # Indicateur visuel de tendance (+ ou -)
+                trend_char = "+" if change >= 0 else "-"
 
                 if price < 1:
                     price_str = f"{price:.4f}"
@@ -84,16 +93,31 @@ class OLEDRenderer:
                 else:
                     price_str = f"{int(price):,}".replace(",", " ")
 
-                line_text = f"{short_name:<5} {price_str} ({change:+.1f}%)"
-                draw.text((0, y_offset), line_text, fill="white")
+                change_str = f"({change:+.1f}%)"
+
+                # Colonne 1 (Gauche) : Tendance + Nom de la crypto (ex: "+ BTC")
+                left_text = f"{trend_char} {short_name}"
+                draw.text((0, y_offset), left_text, fill="white")
+
+                # Colonne 2 (Centre) : Prix
+                draw.text((42, y_offset), price_str, fill="white")
+
+                # Colonne 3 (Droite) : Pourcentage de variation
+                draw.text((86, y_offset), change_str, fill="white")
+
                 y_offset += 10
 
     def display_offline_status(self, cpu_temp: float):
         """Affiche un écran d'alerte en cas de perte de connexion réseau."""
         with canvas(self.device) as draw:
             now_str = datetime.now().strftime("%d/%m %H:%M")
-            header_text = f"{now_str} | {cpu_temp:.1f}°C"
-            draw.text((0, 0), header_text, fill="white")
+            temp_str = f"{cpu_temp:.1f}°C"
+            
+            draw.text((0, 0), now_str, fill="white")
+            draw.text((61, 0), "|", fill="white")
+            
+            temp_x = 128 - (len(temp_str) * 6)
+            draw.text((temp_x, 0), temp_str, fill="white")
             
             draw.line((0, 10, self.device.width, 10), fill="white")
 
@@ -121,7 +145,7 @@ class CryptoAppController:
 
     def run_loop(self):
         """Exécute la boucle infinie de mise à jour toutes les 5 minutes."""
-        print("Démarrage du service d'affichage crypto en continu...")
+        print("Démarrage du service d'affichage crypto ergonomique...")
         while True:
             try:
                 cpu_temp = self.system_monitor.get_cpu_temperature()
@@ -138,7 +162,6 @@ class CryptoAppController:
                         print(f"Mode hors-ligne activé (Erreur: {e})")
                         self.renderer.display_offline_status(cpu_temp)
                 
-                # Attente de 5 minutes (300 secondes) avant la prochaine actualisation
                 t_module.sleep(300)
             except KeyboardInterrupt:
                 print("Arrêt demandé par l'utilisateur.")
