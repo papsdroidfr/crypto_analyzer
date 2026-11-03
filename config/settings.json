@@ -4,10 +4,9 @@
   "symbols": [
     "BTCUSDC",
     "ETHUSDC",
-    "SOLUSDC",
     "TAOUSDC",
+    "NEARUSDC",
     "BNBUSDC",
-    "LTCUSDC",
     "HYPEUSDC"
   ],
 
@@ -133,8 +132,47 @@
           "right": { "indicator": "close", "offset": 1 }
         }
       ]
-    }
+    },
 
+    {
+      "name": "Price crossed below EMA 50" ,
+      "type": "threshold",  
+      "timeframes": ["1d"],
+      "severity": "CRITICAL",
+      "message_tpl": "⚡️ Le prix a croisé en dessous de l'EMA 50 sur {symbol} [{tf}] — Close={close}, EMA_50={ema_50}",
+      "conditions": [
+        {
+          "left": { "indicator": "close", "offset": 1 },
+          "operator": ">",
+          "right": { "indicator": "sma_50", "offset": 1 }
+        },
+        {
+          "left": { "indicator": "close", "offset": 0 },
+          "operator": "<",      
+          "right": { "indicator": "sma_50", "offset": 0 }
+        }   
+      ]
+    },
+    
+    {
+      "name": "Price crossed above EMA 50" ,
+      "type": "threshold",  
+      "timeframes": ["1d"],
+      "severity": "CRITICAL",
+      "message_tpl": "⚡️ Le prix a croisé au-dessus de l'EMA 50 sur {symbol} [{tf}] — Close={close}, EMA_50={ema_50}",
+      "conditions": [
+        {
+          "left": { "indicator": "close", "offset": 1 },
+          "operator": "<",
+          "right": { "indicator": "sma_50", "offset": 1 }
+        },
+        {
+          "left": { "indicator": "close", "offset": 0 },
+          "operator": ">",
+          "right": { "indicator": "sma_50", "offset": 0 }
+        }   
+      ]
+    }
   ]
 }
 

@@ -2,7 +2,7 @@
 technical_indicators.py — Calcul des indicateurs techniques avec Polars.
 
 Indicateurs implémentés :
-  - Moyennes mobiles simples  : SMA_7, SMA_30, SMA_200
+  - Moyennes mobiles simples  : SMA_7, SMA_50, SMA_200
   - RSI                       : RSI_7, RSI_14
   - MACD                      : macd_line, macd_signal, macd_hist
   - Bandes de Bollinger       : bb_upper, bb_middle, bb_lower, bb_width, bb_%b
@@ -30,7 +30,7 @@ class TechnicalIndicatorCalculator(IIndicatorCalculator):
     def calculate(self, data: OHLCVData) -> pl.DataFrame:
         df = data.df.clone()
         df = self._add_sma(df, 7)
-        df = self._add_sma(df, 30)
+        df = self._add_sma(df, 50)
         df = self._add_sma(df, 200)
         df = self._add_rsi(df, 7)
         df = self._add_rsi(df, 14)
