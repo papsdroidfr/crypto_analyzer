@@ -10,7 +10,8 @@ def test_load_valid_config(tmp_path):
         "symbols": ["BTCUSDC"],
         "timeframes": [{"value": "1d", "label": "1d", "candles_chart": 7}],
         "discord": {"webhook": "https://example"},
-        "alerts": [],
+        "alerte_dailly": [],
+        "alert_hourly": [],
     }
     p = tmp_path / "cfg.json"
     p.write_text(json.dumps(cfg), encoding="utf-8")
@@ -50,3 +51,13 @@ def test_invalid_symbols_or_alerts_types(tmp_path):
     loader2 = JsonConfigLoader(str(p2))
     with pytest.raises(ValueError):
         loader2.load()
+
+    cfg3 = {
+        "symbols": ["X"], "timeframes": [], "discord": {},
+        "alerte_dailly": [], "alert_hourly": {},
+    }
+    p3 = tmp_path / "bad4.json"
+    p3.write_text(json.dumps(cfg3), encoding="utf-8")
+    loader3 = JsonConfigLoader(str(p3))
+    with pytest.raises(ValueError):
+        loader3.load()

@@ -65,11 +65,15 @@ class AlertEngine:
 
         symbols    = [Symbol(s) for s in self._config["symbols"]]
         timeframes = self._build_timeframes(daily=True)
+        alert_configs = self._daily_alert_configs()
 
         for symbol in symbols:
             for tf in timeframes:
                 try:
-                    alerts = self._process_symbol_timeframe(symbol, tf, lookback=7)
+                    alerts = self._process_symbol_timeframe(
+                        symbol, tf, lookback=7, alert_configs=alert_configs,
+                        mode="quotidienne",
+                    )
                     all_alerts.extend(alerts)
                 except Exception as exc:
                     logger.error(
@@ -86,46 +90,23 @@ class AlertEngine:
 
     def run_hourly(self) -> list[Alert]:
         """
-        Surveille les variations horaires pour toutes les paires.
-        Ne fait tourner QUE HourlyVariationRule.
-
-        Deux fetch distincts :
-          - 3 bougies pour la détection de variation (rapide)
-          - candles_chart bougies pour le graphique si alerte déclenchée
+        Évalue les règles configurées pour la timeframe horaire, comme
+        run_daily() le fait pour les timeframes quotidiennes.
         """
         logger.info("=== Surveillance horaire ===")
         all_alerts: list[Alert] = []
-        symbols   = [Symbol(s) for s in self._config["symbols"]]
+        symbols = [Symbol(s) for s in self._config["symbols"]]
         tf_hourly = self._get_hourly_timeframe()
-
-        hourly_params = self._config.get("hourly_variation", {
-            "threshold_pct": 3.0,
-            "severity": "WARNING",
-        })
-        rule = self._registry.build("hourly_variation")
+        alert_configs = self._hourly_alert_configs()
 
         for symbol in symbols:
             try:
-                # Fetch minimal pour la détection (3 bougies suffisent)
-                data_detect    = self._fetcher.fetch(symbol, tf_hourly, limit=3)
-                enriched_detect = self._calc.calculate(data_detect)
-                alert = rule.evaluate(symbol, tf_hourly, enriched_detect, hourly_params)
-
-                if alert:
-                    # Fetch complet pour un graphique lisible
-                    chart_limit    = max(250, tf_hourly.candles_chart + 50)
-                    data_chart     = self._fetcher.fetch(symbol, tf_hourly, limit=chart_limit)
-                    enriched_chart = self._calc.calculate(data_chart)
-
-                    chart_path = self._generate_chart(data_chart, enriched_chart, alert)
-                    if chart_path:
-                        alert.chart_path = chart_path
-                        self._notifier.send_chart(alert, chart_path)
-                    else:
-                        self._notifier.send(alert)
-                    all_alerts.append(alert)
-                    logger.info("Alerte horaire : %s", alert.message)
-
+                all_alerts.extend(
+                    self._process_symbol_timeframe(
+                        symbol, tf_hourly, lookback=7, alert_configs=alert_configs,
+                        mode="horaire",
+                    )
+                )
             except Exception as exc:
                 logger.error("Erreur horaire %s : %s", symbol, exc, exc_info=True)
 
@@ -134,6 +115,24 @@ class AlertEngine:
     # ------------------------------------------------------------------
     # Helpers
     # ------------------------------------------------------------------
+
+    def _daily_alert_configs(self) -> list[dict[str, Any]]:
+        return self._config.get("alerte_dailly", self._config.get("alerts", []))
+
+    def _hourly_alert_configs(self) -> list[dict[str, Any]]:
+        if "alert_hourly" in self._config:
+            return self._config["alert_hourly"]
+
+        legacy_config = self._config.get("hourly_variation", {
+            "threshold_pct": 3.0,
+            "severity": "WARNING",
+        })
+        return [{
+            "name": "hourly_variation",
+            "type": "hourly_variation",
+            "timeframes": ["1h"],
+            **legacy_config,
+        }]
 
     def _get_hourly_timeframe(self) -> Timeframe:
         """
@@ -155,6 +154,8 @@ class AlertEngine:
         symbol: Symbol,
         tf: Timeframe,
         lookback: int,
+        alert_configs: list[dict[str, Any]],
+        mode: str,
     ) -> list[Alert]:
         # On récupère assez de données pour les indicateurs (200 SMA min)
         fetch_limit = max(250, lookback + 200)
@@ -165,12 +166,12 @@ class AlertEngine:
         eval_df = enriched.tail(lookback)
 
         alerts: list[Alert] = []
-        for rule_cfg in self._config.get("alerts", []):
+        for rule_cfg in alert_configs:
             if "symbols" in rule_cfg and symbol.value not in rule_cfg["symbols"]:
                 continue
             if "timeframes" in rule_cfg and tf.value not in rule_cfg["timeframes"]:
                 continue
-            if rule_cfg.get("type") == "hourly_variation":
+            if mode == "quotidienne" and rule_cfg.get("type") == "hourly_variation":
                 continue
 
             rule  = self._registry.build(rule_cfg.get("name", rule_cfg.get("type", "threshold")))
@@ -184,7 +185,7 @@ class AlertEngine:
                 else:
                     self._notifier.send(alert)
                 alerts.append(alert)
-                logger.info("Alerte quotidienne déclenchée : %s — %s", rule.name, alert.message)
+                logger.info("Alerte %s déclenchée : %s — %s", mode, rule.name, alert.message)
 
         return alerts
 

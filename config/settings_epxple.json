@@ -39,12 +39,19 @@
   },
 
 
-  "hourly_variation": {
-    "threshold_pct": 3.0,
-    "severity": "WARNING"
-  },
+  "alert_hourly": [
+    {
+      "_comment": "Variation absolue du cours entre les deux dernières bougies horaires",
+      "name": "hourly_variation",
+      "type": "hourly_variation",
+      "timeframes": ["1h"],
+      "threshold_pct": 3.0,
+      "severity": "WARNING",
+      "message_tpl": "Variation horaire de {variation_pct}% sur {symbol} [{tf}] (seuil {threshold_pct}%)"
+    }
+  ],
 
-  "alerts": [
+  "alerte_dailly": [
     {
       "_comment": "RSI 14 en surachat (> 70) sur timeframe quotidienne",
       "name": "rsi14_overbought_daily",

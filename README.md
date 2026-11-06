@@ -172,8 +172,8 @@ Points de configuration importants :
 - `discord.webhook_url` : webhook Discord pour les notifications
 - `discord.bot_token` : token du bot Discord utilisé par le script de nettoyage
 - `discord.channel_id` : identifiant du salon ou du fil ciblé par le script de nettoyage
-- `alerts` : règles d’alerte à appliquer
-- `hourly_variation` : paramètres de la surveillance horaire
+- `alerte_dailly` : règles d’alerte appliquées aux périodes quotidiennes et hebdomadaires
+- `alert_hourly` : règles d’alerte appliquées à la timeframe horaire (`1h`)
 
 ## Exemple de configuration JSON
 
@@ -189,7 +189,7 @@ Points de configuration importants :
       "bot_token": "VOTRE_TOKEN_DE_BOT",
       "channel_id": "ID_DU_SALON"
   },
-  "alerts": [
+  "alerte_dailly": [
     {
       "name": "rsi_high",
       "type": "threshold",
@@ -204,10 +204,16 @@ Points de configuration importants :
       ]
     }
   ],
-  "hourly_variation": {
-    "threshold_pct": 3.0,
-    "severity": "WARNING"
-  }
+  "alert_hourly": [
+    {
+      "name": "hourly_variation",
+      "type": "hourly_variation",
+      "timeframes": ["1h"],
+      "threshold_pct": 3.0,
+      "severity": "WARNING",
+      "message_tpl": "Variation horaire de {variation_pct}% sur {symbol} [{tf}]"
+    }
+  ]
 }
 ```
 

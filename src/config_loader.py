@@ -35,7 +35,7 @@ class JsonConfigLoader(IConfigLoader):
     # ------------------------------------------------------------------
 
     def _validate(self, config: dict[str, Any]) -> None:
-        required_keys = ["symbols", "timeframes", "discord", "alerts"]
+        required_keys = ["symbols", "timeframes", "discord"]
         for key in required_keys:
             if key not in config:
                 raise ValueError(f"Clé obligatoire manquante dans la config : '{key}'")
@@ -43,8 +43,15 @@ class JsonConfigLoader(IConfigLoader):
         if not isinstance(config["symbols"], list) or not config["symbols"]:
             raise ValueError("'symbols' doit être une liste non vide.")
 
-        if not isinstance(config["alerts"], list):
-            raise ValueError("'alerts' doit être une liste de règles.")
+        daily_alerts = config.get("alerte_dailly", config.get("alerts"))
+        if daily_alerts is None:
+            raise ValueError("Clé obligatoire manquante : 'alerte_dailly' (ou 'alerts').")
+        if not isinstance(daily_alerts, list):
+            raise ValueError("'alerte_dailly' doit être une liste de règles.")
+
+        hourly_alerts = config.get("alert_hourly")
+        if hourly_alerts is not None and not isinstance(hourly_alerts, list):
+            raise ValueError("'alert_hourly' doit être une liste de règles.")
 
         logger.debug("Configuration validée : %d symboles, %d règles d'alerte",
-                     len(config["symbols"]), len(config["alerts"]))
+                     len(config["symbols"]), len(daily_alerts))

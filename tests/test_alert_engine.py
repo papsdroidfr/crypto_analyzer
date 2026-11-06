@@ -37,6 +37,37 @@ class FakeChartGen:
         return output_path
 
 
+def test_run_daily_uses_alerte_dailly_config():
+    enriched = pl.DataFrame({"close": [100.0, 104.0]})
+    fetcher = FakeFetcher(enriched)
+    calc = FakeCalculator(enriched)
+    notifier = FakeNotifier()
+    charts = FakeChartGen()
+    config = {
+        "symbols": ["BTCUSDC"],
+        "timeframes": [{"value": "1d", "label": "1 jour", "candles_chart": 60}],
+        "alerts": [],
+        "alerte_dailly": [{
+            "name": "daily_close_threshold",
+            "type": "threshold",
+            "timeframes": ["1d"],
+            "conditions": [{
+                "indicator": "close",
+                "operator": ">",
+                "value": 102,
+            }],
+            "severity": "WARNING",
+        }],
+    }
+
+    engine = AlertEngine(fetcher, calc, notifier, charts, build_default_registry(), config)
+
+    alerts = engine.run_daily()
+
+    assert len(alerts) == 1
+    assert alerts[0].rule_name == "daily_close_threshold"
+
+
 def test_run_hourly_triggers_and_sends_chart():
     # create enriched df with two close values causing >3% variation
     enriched = pl.DataFrame({"close": [100.0, 104.0]})
@@ -52,6 +83,38 @@ def test_run_hourly_triggers_and_sends_chart():
     alerts = engine.run_hourly()
     assert len(alerts) >= 1
     assert len(notifier.sent_charts) >= 1
+
+
+def test_run_hourly_uses_configured_alert_rules():
+    enriched = pl.DataFrame({"close": [100.0, 104.0]})
+    fetcher = FakeFetcher(enriched)
+    calc = FakeCalculator(enriched)
+    notifier = FakeNotifier()
+    charts = FakeChartGen()
+    config = {
+        "symbols": ["BTCUSDC"],
+        "timeframes": [{"value": "1h", "label": "1 heure", "candles_chart": 48}],
+        "alert_hourly": [{
+            "name": "hourly_close_threshold",
+            "type": "threshold",
+            "timeframes": ["1h"],
+            "conditions": [{
+                "indicator": "close",
+                "operator": ">",
+                "value": 102,
+            }],
+            "severity": "CRITICAL",
+        }],
+    }
+
+    engine = AlertEngine(fetcher, calc, notifier, charts, build_default_registry(), config)
+
+    alerts = engine.run_hourly()
+
+    assert len(alerts) == 1
+    assert alerts[0].rule_name == "hourly_close_threshold"
+    assert alerts[0].severity == "CRITICAL"
+    assert len(notifier.sent_charts) == 1
 
 
 def test_build_timeframes_filters_hourly():
