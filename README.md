@@ -172,8 +172,9 @@ Points de configuration importants :
 - `discord.webhook_url` : webhook Discord pour les notifications
 - `discord.bot_token` : token du bot Discord utilisé par le script de nettoyage
 - `discord.channel_id` : identifiant du salon ou du fil ciblé par le script de nettoyage
-- `alerte_dailly` : règles d’alerte appliquées aux périodes quotidiennes et hebdomadaires
+- `alerte_dailly` : règles d’alerte appliquées à la timeframe quotidienne (`1d`)
 - `alert_hourly` : règles d’alerte appliquées à la timeframe horaire (`1h`)
+- `alert_weekly` : règles d’alerte appliquées à la timeframe hebdomadaire (`1w`)
 
 ## Exemple de configuration JSON
 
@@ -213,6 +214,27 @@ Points de configuration importants :
       "severity": "WARNING",
       "message_tpl": "Variation horaire de {variation_pct}% sur {symbol} [{tf}]"
     }
+  ],
+  "alert_weekly": [
+    {
+      "name": "weekly_macd_bullish_candle",
+      "type": "threshold",
+      "timeframes": ["1w"],
+      "severity": "WARNING",
+      "message_tpl": "Signal hebdomadaire — MACD précédent={macd_line_1}, MACD actuel={macd_line}",
+      "conditions": [
+        {
+          "left": {"indicator": "macd_line", "offset": 1},
+          "operator": ">",
+          "right": {"indicator": "macd_line", "offset": 0}
+        },
+        {
+          "left": {"indicator": "close", "offset": 0},
+          "operator": ">",
+          "right": {"indicator": "open", "offset": 0}
+        }
+      ]
+    }
   ]
 }
 ```
@@ -224,6 +246,7 @@ Exemples de lancement :
 ```bash
 python -m src.engine.runner daily
 python -m src.engine.runner hourly
+python -m src.engine.runner weekly
 python -m src.engine.runner chart BTCUSDC 1d
 ```
 

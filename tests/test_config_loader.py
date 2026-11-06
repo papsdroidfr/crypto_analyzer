@@ -12,6 +12,7 @@ def test_load_valid_config(tmp_path):
         "discord": {"webhook": "https://example"},
         "alerte_dailly": [],
         "alert_hourly": [],
+        "alert_weekly": [],
     }
     p = tmp_path / "cfg.json"
     p.write_text(json.dumps(cfg), encoding="utf-8")
@@ -61,3 +62,13 @@ def test_invalid_symbols_or_alerts_types(tmp_path):
     loader3 = JsonConfigLoader(str(p3))
     with pytest.raises(ValueError):
         loader3.load()
+
+    cfg4 = {
+        "symbols": ["X"], "timeframes": [], "discord": {},
+        "alerte_dailly": [], "alert_weekly": {},
+    }
+    p4 = tmp_path / "bad5.json"
+    p4.write_text(json.dumps(cfg4), encoding="utf-8")
+    loader4 = JsonConfigLoader(str(p4))
+    with pytest.raises(ValueError):
+        loader4.load()

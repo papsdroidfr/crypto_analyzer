@@ -138,6 +138,7 @@ classDiagram
         -dict _config
         +run_daily() list~Alert~
         +run_hourly() list~Alert~
+        +run_weekly() list~Alert~
         -_process_symbol_timeframe(symbol, timeframe, lookback) list~Alert~
         -_generate_chart(data, enriched, alert) Optional~str~
         -_build_timeframes(daily) list~Timeframe~

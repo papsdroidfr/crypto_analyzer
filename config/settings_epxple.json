@@ -50,6 +50,51 @@
       "message_tpl": "Variation horaire de {variation_pct}% sur {symbol} [{tf}] (seuil {threshold_pct}%)"
     }
   ],
+  
+  "alert_weekly": [
+    {
+      "_comment": "LONG orientation haussière — MACD croise à la hausse et bougie hebdomadaire haussière",
+      "name": "weekly_macd_bullish_candle",
+      "type": "threshold",
+      "timeframes": ["1w"],
+      "severity": "WARNING",
+      "message_tpl": "LONG hebdomadaire sur {symbol} [{tf}] — MACD précédent={macd_line_1}, MACD actuel={macd_line}, close={close}, open={open}",
+      "conditions": [
+        {
+          "left": {"indicator": "macd_line", "offset": 1},
+          "operator": ">",
+          "right": {"indicator": "macd_line", "offset": 0}
+        },
+        {
+          "left": {"indicator": "close", "offset": 0},
+          "operator": ">",
+          "right": {"indicator": "open", "offset": 0}
+        }
+      ]
+    },
+
+    {
+      "_comment": "SHORT orientation baissière — MACD croise à la baisse et bougie hebdomadaire baissière",
+      "name": "weekly_macd_bearish_candle",
+      "type": "threshold",
+      "timeframes": ["1w"],
+      "severity": "WARNING",
+      "message_tpl": "SHORT hebdomadaire sur {symbol} [{tf}] — MACD précédent={macd_line_1}, MACD actuel={macd_line}, close={close}, open={open}",
+      "conditions": [
+        {
+          "left": {"indicator": "macd_line", "offset": 1},
+          "operator": "<",
+          "right": {"indicator": "macd_line", "offset": 0}
+        },
+        {
+          "left": {"indicator": "close", "offset": 0},
+          "operator": "<",
+          "right": {"indicator": "open", "offset": 0}
+        }
+      ]
+    }
+  ],
+
 
   "alerte_dailly": [
     {

@@ -2,10 +2,11 @@
 alert_engine.py — Moteur d'orchestration des alertes.
 
 Deux modes de fonctionnement :
-  1. run_daily()  : analyse sur 7 dernières périodes pleines (1d ou 1w)
+  1. run_daily()  : analyse sur les 7 dernières périodes quotidiennes
                     → à planifier une fois par jour via crontab
   2. run_hourly() : surveille les variations de cours horaires
                     → à planifier toutes les heures via crontab
+  3. run_weekly() : évalue les règles configurées sur la timeframe 1w
 
 Principe S : le moteur orchestre, il ne calcule ni ne notifie directement.
 Principe D : toutes les dépendances sont injectées (fetcher, calculator, etc.).
@@ -57,8 +58,7 @@ class AlertEngine:
     def run_daily(self) -> list[Alert]:
         """
         Analyse sur les 7 dernières périodes pleines pour toutes les paires
-        et toutes les timeframes configurées (1d, 1w).
-        Évalue les règles d'alerte (hors variation horaire).
+        et les règles configurées pour la timeframe quotidienne (1d).
         """
         logger.info("=== Démarrage analyse quotidienne ===")
         all_alerts: list[Alert] = []
@@ -112,6 +112,28 @@ class AlertEngine:
 
         return all_alerts
 
+    def run_weekly(self) -> list[Alert]:
+        """Évalue les règles weekly sur les deux dernières bougies 1w."""
+        logger.info("=== Démarrage analyse hebdomadaire ===")
+        all_alerts: list[Alert] = []
+        symbols = [Symbol(s) for s in self._config["symbols"]]
+        tf_weekly = self._get_weekly_timeframe()
+        alert_configs = self._weekly_alert_configs()
+
+        for symbol in symbols:
+            try:
+                all_alerts.extend(
+                    self._process_symbol_timeframe(
+                        symbol, tf_weekly, lookback=2, alert_configs=alert_configs,
+                        mode="hebdomadaire",
+                    )
+                )
+            except Exception as exc:
+                logger.error("Erreur hebdomadaire %s : %s", symbol, exc, exc_info=True)
+
+        logger.info("Analyse hebdomadaire terminée : %d alerte(s) générée(s).", len(all_alerts))
+        return all_alerts
+
     # ------------------------------------------------------------------
     # Helpers
     # ------------------------------------------------------------------
@@ -134,6 +156,9 @@ class AlertEngine:
             **legacy_config,
         }]
 
+    def _weekly_alert_configs(self) -> list[dict[str, Any]]:
+        return self._config.get("alert_weekly", [])
+
     def _get_hourly_timeframe(self) -> Timeframe:
         """
         Lit la config de la timeframe '1h' depuis settings.json.
@@ -147,6 +172,18 @@ class AlertEngine:
             value=tf_cfg["value"],
             label=tf_cfg["label"],
             candles_chart=tf_cfg.get("candles_chart", 48),
+        )
+
+    def _get_weekly_timeframe(self) -> Timeframe:
+        """Lit la configuration de la timeframe '1w'."""
+        tf_cfg = next(
+            (t for t in self._config.get("timeframes", []) if t["value"] == "1w"),
+            {"value": "1w", "label": "1 semaine", "candles_chart": 26},
+        )
+        return Timeframe(
+            value=tf_cfg["value"],
+            label=tf_cfg["label"],
+            candles_chart=tf_cfg.get("candles_chart", 26),
         )
 
     def _process_symbol_timeframe(
@@ -210,8 +247,8 @@ class AlertEngine:
                 label=cfg["label"],
                 candles_chart=cfg.get("candles_chart", 90),
             )
-            # Mode quotidien : on skip la timeframe horaire
-            if daily and tf.value == "1h":
+            # Les analyses horaires et hebdomadaires ont leurs propres moteurs.
+            if daily and tf.value in {"1h", "1w"}:
                 continue
             result.append(tf)
         return result

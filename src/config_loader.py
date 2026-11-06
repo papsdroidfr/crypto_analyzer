@@ -53,5 +53,9 @@ class JsonConfigLoader(IConfigLoader):
         if hourly_alerts is not None and not isinstance(hourly_alerts, list):
             raise ValueError("'alert_hourly' doit être une liste de règles.")
 
+        weekly_alerts = config.get("alert_weekly")
+        if weekly_alerts is not None and not isinstance(weekly_alerts, list):
+            raise ValueError("'alert_weekly' doit être une liste de règles.")
+
         logger.debug("Configuration validée : %d symboles, %d règles d'alerte",
                      len(config["symbols"]), len(daily_alerts))

@@ -4,9 +4,11 @@ runner.py — Points d'entrée CLI pour la crontab Raspberry Pi.
 Usage :
   python -m src.engine.runner daily                # Analyse quotidienne (cron : 0 6 * * *)
   python -m src.engine.runner hourly               # Variation horaire  (cron : 0 * * * *)
+  python -m src.engine.runner weekly               # Analyse hebdomadaire
   python -m src.engine.runner chart BTCUSDC 1d     # Graphique ad-hoc
   python -m src.engine.runner daily  --no-notifier # Test sans envoi Discord
   python -m src.engine.runner hourly --no-notifier # Test sans envoi Discord
+  python -m src.engine.runner weekly --no-notifier # Test sans envoi Discord
 
 """
 
@@ -114,6 +116,13 @@ def cmd_hourly(args) -> None:
     alerts = engine.run_hourly()
     logger.info("Terminé. %d alerte(s) horaire(s).", len(alerts))
 
+def cmd_weekly(args) -> None:
+    logger.info("Commande : analyse hebdomadaire%s", " [dry-run]" if args.no_notifier else "")
+    Path("logs").mkdir(exist_ok=True)
+    engine = _build_engine(args.config, no_notifier=args.no_notifier)
+    alerts = engine.run_weekly()
+    logger.info("Terminé. %d alerte(s) hebdomadaire(s).", len(alerts))
+
 
 def cmd_chart(args) -> None:
     """Génère un graphique ad-hoc pour un symbole et une timeframe donnés."""
@@ -158,10 +167,11 @@ def main() -> None:
 
     subparsers = parser.add_subparsers(dest="command", required=True)
 
-    # Sous-commandes daily et hourly partagent --no-notifier
+    # Les modes d'analyse partagent l'option --no-notifier.
     for cmd_name, cmd_help in [
         ("daily",  "Lancer l'analyse quotidienne"),
         ("hourly", "Lancer la surveillance horaire"),
+        ("weekly", "Lancer l'analyse hebdomadaire"),
     ]:
         sub = subparsers.add_parser(cmd_name, help=cmd_help)
         sub.add_argument(
@@ -181,6 +191,8 @@ def main() -> None:
         cmd_daily(args)
     elif args.command == "hourly":
         cmd_hourly(args)
+    elif args.command == "weekly":
+        cmd_weekly(args)
     elif args.command == "chart":
         cmd_chart(args)
     else:
