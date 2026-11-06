@@ -92,8 +92,13 @@
       "message_tpl": "⚡️ Rebond sur la bande de Bollinger inférieure sur {symbol} [{tf}] — Close={close}, BB_Lower={bb_lower}",
       "conditions": [
         {
-          "left": { "indicator": "low", "offset": 1 },
+          "left": { "indicator": "low", "offset": 2 },
           "operator": "<",
+          "right": { "indicator": "bb_lower", "offset": 2 }
+        },
+        {
+          "left": { "indicator": "close", "offset": 1 },
+          "operator": ">",
           "right": { "indicator": "bb_lower", "offset": 1 }
         },
         {
@@ -101,6 +106,7 @@
           "operator": ">",
           "right": { "indicator": "bb_lower", "offset": 0 }
         },
+
         {
           "left": { "indicator": "close", "offset": 0 },
           "operator": ">",
@@ -117,8 +123,13 @@
       "message_tpl": "⚡️ Rebond sur la bande de Bollinger supérieure sur {symbol} [{tf}] — Close={close}, BB_Upper={bb_upper}",
       "conditions": [
         {
-          "left": { "indicator": "high", "offset": 1 },
+          "left": { "indicator": "high", "offset": 2 },
           "operator": ">",
+          "right": { "indicator": "bb_upper", "offset": 2 }
+        },
+        {
+          "left": { "indicator": "close", "offset": 1 },
+          "operator": "<",
           "right": { "indicator": "bb_upper", "offset": 1 }
         },
         {
