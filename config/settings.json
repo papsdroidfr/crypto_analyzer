@@ -41,6 +41,7 @@
   "alert_hourly": [
     {
       "_comment": "Variation absolue du cours entre les deux dernières bougies horaires",
+      "id": "HVARIATION",
       "name": "hourly_variation",
       "type": "hourly_variation",
       "timeframes": ["1h"],
@@ -53,6 +54,7 @@
   "alert_weekly": [
     {
       "_comment": "LONG orientation haussière — MACD croise à la hausse et bougie hebdomadaire haussière",
+      "id": "WLMACDUP",
       "name": "weekly_macd_bullish_candle",
       "type": "threshold",
       "timeframes": ["1w"],
@@ -73,6 +75,7 @@
     },
     {
       "_comment": "SHORT orientation baissière — MACD croise à la baisse et bougie hebdomadaire baissière",
+      "id": "WSMACDDN",
       "name": "weekly_macd_bearish_candle",
       "type": "threshold",
       "timeframes": ["1w"],
@@ -96,6 +99,7 @@
   "alert_daily": [
     {
       "_comment": "RSI 7 en surachat extrême (> 80) — signal fort",
+      "id": "DRSI7OB",
       "name": "rsi7_extreme_overbought",
       "type": "threshold",
       "timeframes": [
@@ -116,6 +120,7 @@
 
     {
       "_comment": "RSI 7 en survente extrême (< 20) — signal fort",
+      "id": "DRSI7OS",
       "name": "rsi7_extreme_oversold",
       "type": "threshold",
       "timeframes": [
@@ -137,6 +142,7 @@
 
     {
       "name": "bollinger rebond basse",
+      "id": "DBBREBLO",
       "type": "threshold",
       "timeframes": ["1d"],
       "severity": "CRITICAL",
@@ -168,6 +174,7 @@
 
     {
       "name": "bollinger rebond haute",
+      "id": "DBBREBHI",
       "type": "threshold",
       "timeframes": ["1d"],
       "severity": "CRITICAL",
@@ -198,6 +205,7 @@
 
     {
       "name": "Price crossed below EMA 50" ,
+      "id": "DEMA50DN",
       "type": "threshold",  
       "timeframes": ["1d"],
       "severity": "CRITICAL",
@@ -218,6 +226,7 @@
     
     {
       "name": "Price crossed above EMA 50" ,
+      "id": "DEMA50UP",
       "type": "threshold",  
       "timeframes": ["1d"],
       "severity": "CRITICAL",
