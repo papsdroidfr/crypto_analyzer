@@ -18,6 +18,8 @@ import sys
 from datetime import date
 from pathlib import Path
 
+import polars as pl
+
 # ---------------------------------------------------------------------------
 # Logging configuré tôt pour capturer les imports
 # ---------------------------------------------------------------------------
@@ -33,6 +35,16 @@ logging.basicConfig(
     ],
 )
 logger = logging.getLogger(__name__)
+
+
+def _print_simulation_results(result: pl.DataFrame) -> None:
+    sections = (
+        ("hebdomadaires (weekly)", "W"),
+        ("quotidiennes (daily)", "D"),
+    )
+    for label, prefix in sections:
+        print(f"\nAlertes {label} :")
+        print(result.filter(pl.col("alert_id").str.starts_with(prefix)))
 
 
 # ---------------------------------------------------------------------------
@@ -140,7 +152,7 @@ def cmd_simulate(args):
         config=config,
     )
     result = simulator.simulate()
-    print(result)
+    _print_simulation_results(result)
     return result
 
 

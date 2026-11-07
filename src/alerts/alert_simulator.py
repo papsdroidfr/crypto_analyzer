@@ -17,7 +17,11 @@ _INDICATOR_WARMUP_CANDLES = 250
 
 
 class AlertSimulator:
-    """Évalue les règles quotidiennes et hebdomadaires sur les 30 derniers jours."""
+    """Évalue les règles quotidiennes et hebdomadaires sur les 30 derniers jours.
+
+    La simulation inclut aussi la dernière bougie weekly clôturée avant la
+    fenêtre pour amorcer les alertes hebdomadaires.
+    """
 
     def __init__(
         self,
@@ -91,13 +95,30 @@ class AlertSimulator:
                 "— évaluation des règles...",
                 flush=True,
             )
-            for row_index, opened_at in enumerate(enriched["timestamp"].to_list()):
-                candle_closed_at = (
-                    self._as_utc(opened_at)
-                    + timedelta(days=candle_days)
-                    - timedelta(milliseconds=1)
+            candle_closed_times = [
+                self._as_utc(opened_at)
+                + timedelta(days=candle_days)
+                - timedelta(milliseconds=1)
+                for opened_at in enriched["timestamp"].to_list()
+            ]
+            weekly_seed_index = None
+            if timeframe.value == "1w":
+                weekly_seed_index = max(
+                    (
+                        index
+                        for index, closed_at in enumerate(candle_closed_times)
+                        if closed_at < start
+                    ),
+                    key=lambda index: candle_closed_times[index],
+                    default=None,
                 )
-                if not start <= candle_closed_at <= end:
+
+            for row_index, candle_closed_at in enumerate(candle_closed_times):
+                is_weekly_seed = row_index == weekly_seed_index
+                if not (
+                    start <= candle_closed_at <= end
+                    or is_weekly_seed
+                ):
                     continue
 
                 snapshot = enriched.slice(0, row_index + 1)

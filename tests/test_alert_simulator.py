@@ -136,3 +136,62 @@ def test_simulate_returns_typed_empty_dataframe():
         "symbol": pl.String,
         "alert_id": pl.String,
     }
+
+
+def test_simulate_includes_last_closed_weekly_candle_before_period():
+    now = datetime(2026, 2, 1, tzinfo=timezone.utc)
+    daily_timestamps = [
+        datetime(2026, 1, 2, tzinfo=timezone.utc) + timedelta(days=day)
+        for day in range(30)
+    ]
+    weekly_timestamps = [
+        datetime(2025, 12, 22, tzinfo=timezone.utc),
+        datetime(2025, 12, 29, tzinfo=timezone.utc),
+        datetime(2026, 1, 5, tzinfo=timezone.utc),
+        datetime(2026, 1, 12, tzinfo=timezone.utc),
+    ]
+    config = {
+        "symbols": ["BTCUSDC"],
+        "alert_daily": [{
+            "id": "DTEST",
+            "type": "threshold",
+            "timeframes": ["1d"],
+            "conditions": [{
+                "indicator": "close",
+                "operator": ">",
+                "value": 0,
+            }],
+        }],
+        "alert_weekly": [{
+            "id": "WTEST",
+            "type": "threshold",
+            "timeframes": ["1w"],
+            "conditions": [{
+                "indicator": "close",
+                "operator": ">",
+                "value": 0,
+            }],
+        }],
+    }
+
+    result = AlertSimulator(
+        fetcher=FakeFetcher(
+            make_ohlcv(daily_timestamps),
+            make_ohlcv(weekly_timestamps),
+        ),
+        calculator=TechnicalIndicatorCalculator(),
+        rule_registry=build_default_registry(),
+        config=config,
+    ).simulate(now=now)
+
+    assert result.filter(pl.col("alert_id") == "WTEST")["date"].to_list() == [
+        datetime(2025, 12, 28).date(),
+        datetime(2026, 1, 4).date(),
+        datetime(2026, 1, 11).date(),
+        datetime(2026, 1, 18).date(),
+    ]
+    assert result.row(0, named=True) == {
+        "date": datetime(2025, 12, 28).date(),
+        "symbol": "BTCUSDC",
+        "alert_id": "WTEST",
+    }
