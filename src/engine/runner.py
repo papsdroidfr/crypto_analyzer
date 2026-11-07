@@ -124,6 +124,26 @@ def cmd_weekly(args) -> None:
     logger.info("Terminé. %d alerte(s) hebdomadaire(s).", len(alerts))
 
 
+def cmd_simulate(args):
+    """Simule les alertes historiques sans construire ni appeler de notifier."""
+    from src.alerts.alert_rules import build_default_registry
+    from src.alerts.alert_simulator import AlertSimulator
+    from src.config_loader import JsonConfigLoader
+    from src.fetchers.binance_fetcher import BinanceFetcher
+    from src.indicators.technical_indicators import TechnicalIndicatorCalculator
+
+    config = JsonConfigLoader(args.config).load()
+    simulator = AlertSimulator(
+        fetcher=BinanceFetcher(),
+        calculator=TechnicalIndicatorCalculator(),
+        rule_registry=build_default_registry(),
+        config=config,
+    )
+    result = simulator.simulate()
+    print(result)
+    return result
+
+
 def cmd_chart(args) -> None:
     """Génère un graphique ad-hoc pour un symbole et une timeframe donnés."""
     from src.charts.chart_generator import MatplotlibChartGenerator
@@ -181,6 +201,11 @@ def main() -> None:
             help="Désactive l'envoi Discord (dry-run / test)",
         )
 
+    subparsers.add_parser(
+        "simulate",
+        help="Simuler les alertes daily et weekly sur les 30 derniers jours",
+    )
+
     chart_parser = subparsers.add_parser("chart", help="Générer un graphique ad-hoc")
     chart_parser.add_argument("symbol",    help="Symbole (ex: BTCUSDC)")
     chart_parser.add_argument("timeframe", help="Timeframe (ex: 1d, 1w, 1h)")
@@ -193,6 +218,8 @@ def main() -> None:
         cmd_hourly(args)
     elif args.command == "weekly":
         cmd_weekly(args)
+    elif args.command == "simulate":
+        cmd_simulate(args)
     elif args.command == "chart":
         cmd_chart(args)
     else:

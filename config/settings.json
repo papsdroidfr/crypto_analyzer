@@ -209,7 +209,7 @@
       "type": "threshold",  
       "timeframes": ["1d"],
       "severity": "CRITICAL",
-      "message_tpl": "⚡️ Le prix a croisé en dessous de l'EMA 50 sur {symbol} [{tf}] — Close={close}, EMA_50={ema_50}",
+      "message_tpl": "⚡️ Le prix a croisé en dessous de l'EMA 50 sur {symbol} [{tf}] — Close={close}, EMA_50={sma_50}",
       "conditions": [
         {
           "left": { "indicator": "close", "offset": 1 },
@@ -230,7 +230,7 @@
       "type": "threshold",  
       "timeframes": ["1d"],
       "severity": "CRITICAL",
-      "message_tpl": "⚡️ Le prix a croisé au-dessus de l'EMA 50 sur {symbol} [{tf}] — Close={close}, EMA_50={ema_50}",
+      "message_tpl": "⚡️ Le prix a croisé au-dessus de l'EMA 50 sur {symbol} [{tf}] — Close={close}, EMA_50={sma_50}",
       "conditions": [
         {
           "left": { "indicator": "close", "offset": 1 },

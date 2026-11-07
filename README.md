@@ -192,6 +192,7 @@ Points de configuration importants :
   },
   "alert_daily": [
     {
+      "id": "DRSIHIGH",
       "name": "rsi_high",
       "type": "threshold",
       "timeframes": ["1d"],
@@ -207,6 +208,7 @@ Points de configuration importants :
   ],
   "alert_hourly": [
     {
+      "id": "HVARIATION",
       "name": "hourly_variation",
       "type": "hourly_variation",
       "timeframes": ["1h"],
@@ -217,6 +219,7 @@ Points de configuration importants :
   ],
   "alert_weekly": [
     {
+      "id": "WLMACDUP",
       "name": "weekly_macd_bullish_candle",
       "type": "threshold",
       "timeframes": ["1w"],
@@ -247,8 +250,14 @@ Exemples de lancement :
 python -m src.engine.runner daily
 python -m src.engine.runner hourly
 python -m src.engine.runner weekly
+python -m src.engine.runner simulate
 python -m src.engine.runner chart BTCUSDC 1d
 ```
+
+La commande `simulate` évalue les règles `alert_daily` et `alert_weekly`
+sur les 30 derniers jours glissants, en UTC. Elle affiche les étapes de
+récupération et de calcul, puis un DataFrame Polars avec `date`, `symbol` et
+`alert_id`. Cette simulation ne publie aucune alerte sur Discord.
 
 ## Nettoyage des messages Discord
 
