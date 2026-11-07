@@ -139,7 +139,7 @@ class AlertEngine:
     # ------------------------------------------------------------------
 
     def _daily_alert_configs(self) -> list[dict[str, Any]]:
-        return self._config.get("alerte_dailly", self._config.get("alerts", []))
+        return self._config.get("alert_daily", self._config.get("alerts", []))
 
     def _hourly_alert_configs(self) -> list[dict[str, Any]]:
         if "alert_hourly" in self._config:

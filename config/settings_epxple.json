@@ -96,7 +96,7 @@
   ],
 
 
-  "alerte_dailly": [
+  "alert_daily": [
     {
       "_comment": "RSI 14 en surachat (> 70) sur timeframe quotidienne",
       "name": "rsi14_overbought_daily",

@@ -37,7 +37,7 @@ class FakeChartGen:
         return output_path
 
 
-def test_run_daily_uses_alerte_dailly_config():
+def test_run_daily_uses_alert_daily_config():
     enriched = pl.DataFrame({"close": [100.0, 104.0]})
     fetcher = FakeFetcher(enriched)
     calc = FakeCalculator(enriched)
@@ -47,7 +47,7 @@ def test_run_daily_uses_alerte_dailly_config():
         "symbols": ["BTCUSDC"],
         "timeframes": [{"value": "1d", "label": "1 jour", "candles_chart": 60}],
         "alerts": [],
-        "alerte_dailly": [{
+        "alert_daily": [{
             "name": "daily_close_threshold",
             "type": "threshold",
             "timeframes": ["1d"],

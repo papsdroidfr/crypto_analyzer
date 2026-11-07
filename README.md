@@ -172,7 +172,7 @@ Points de configuration importants :
 - `discord.webhook_url` : webhook Discord pour les notifications
 - `discord.bot_token` : token du bot Discord utilisé par le script de nettoyage
 - `discord.channel_id` : identifiant du salon ou du fil ciblé par le script de nettoyage
-- `alerte_dailly` : règles d’alerte appliquées à la timeframe quotidienne (`1d`)
+- `alert_daily` : règles d’alerte appliquées à la timeframe quotidienne (`1d`)
 - `alert_hourly` : règles d’alerte appliquées à la timeframe horaire (`1h`)
 - `alert_weekly` : règles d’alerte appliquées à la timeframe hebdomadaire (`1w`)
 
@@ -190,7 +190,7 @@ Points de configuration importants :
       "bot_token": "VOTRE_TOKEN_DE_BOT",
       "channel_id": "ID_DU_SALON"
   },
-  "alerte_dailly": [
+  "alert_daily": [
     {
       "name": "rsi_high",
       "type": "threshold",

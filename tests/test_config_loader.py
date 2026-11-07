@@ -10,7 +10,7 @@ def test_load_valid_config(tmp_path):
         "symbols": ["BTCUSDC"],
         "timeframes": [{"value": "1d", "label": "1d", "candles_chart": 7}],
         "discord": {"webhook": "https://example"},
-        "alerte_dailly": [],
+        "alert_daily": [],
         "alert_hourly": [],
         "alert_weekly": [],
     }
@@ -55,7 +55,7 @@ def test_invalid_symbols_or_alerts_types(tmp_path):
 
     cfg3 = {
         "symbols": ["X"], "timeframes": [], "discord": {},
-        "alerte_dailly": [], "alert_hourly": {},
+        "alert_daily": [], "alert_hourly": {},
     }
     p3 = tmp_path / "bad4.json"
     p3.write_text(json.dumps(cfg3), encoding="utf-8")
@@ -65,7 +65,7 @@ def test_invalid_symbols_or_alerts_types(tmp_path):
 
     cfg4 = {
         "symbols": ["X"], "timeframes": [], "discord": {},
-        "alerte_dailly": [], "alert_weekly": {},
+        "alert_daily": [], "alert_weekly": {},
     }
     p4 = tmp_path / "bad5.json"
     p4.write_text(json.dumps(cfg4), encoding="utf-8")

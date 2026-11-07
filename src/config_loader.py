@@ -43,11 +43,11 @@ class JsonConfigLoader(IConfigLoader):
         if not isinstance(config["symbols"], list) or not config["symbols"]:
             raise ValueError("'symbols' doit être une liste non vide.")
 
-        daily_alerts = config.get("alerte_dailly", config.get("alerts"))
+        daily_alerts = config.get("alert_daily", config.get("alerts"))
         if daily_alerts is None:
-            raise ValueError("Clé obligatoire manquante : 'alerte_dailly' (ou 'alerts').")
+            raise ValueError("Clé obligatoire manquante : 'alert_daily' (ou 'alerts').")
         if not isinstance(daily_alerts, list):
-            raise ValueError("'alerte_dailly' doit être une liste de règles.")
+            raise ValueError("'alert_daily' doit être une liste de règles.")
 
         hourly_alerts = config.get("alert_hourly")
         if hourly_alerts is not None and not isinstance(hourly_alerts, list):

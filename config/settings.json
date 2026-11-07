@@ -93,7 +93,7 @@
     }
   ],
 
-  "alerte_dailly": [
+  "alert_daily": [
     {
       "_comment": "RSI 7 en surachat extrême (> 80) — signal fort",
       "name": "rsi7_extreme_overbought",
