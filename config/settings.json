@@ -243,6 +243,58 @@
           "right": { "indicator": "sma_50", "offset": 0 }
         }   
       ]
+    },
+    {
+      "_comment": "Tendance haussière — MACD histogramme en hausse, RSI 7 sous 60 et cours sous la Bollinger supérieure",
+      "name": "daily_bullish_macd_rsi_bollinger",
+      "id": "DBULLMACD",
+      "type": "threshold",
+      "timeframes": ["1d"],
+      "severity": "WARNING",
+      "message_tpl": "📈 Tendance haussière sur {symbol} [{tf}] — MACD hist={macd_hist}, RSI 7={rsi_7}, close={close}, BB sup={bb_upper}",
+      "conditions": [
+        {
+          "left": { "indicator": "macd_hist", "offset": 0 },
+          "operator": ">",
+          "right": { "indicator": "macd_hist", "offset": 1 }
+        },
+        {
+          "left": { "indicator": "rsi_7", "offset": 0 },
+          "operator": "<",
+          "right": { "value": 60 }
+        },
+        {
+          "left": { "indicator": "close", "offset": 0 },
+          "operator": "<",
+          "right": { "indicator": "bb_upper", "offset": 0 }
+        }
+      ]
+    },
+    {
+      "_comment": "Tendance baissière — MACD histogramme en baisse, RSI 7 au-dessus de 60 et cours au-dessus de la Bollinger supérieure",
+      "name": "daily_bearish_macd_rsi_bollinger",
+      "id": "DBEARMACD",
+      "type": "threshold",
+      "timeframes": ["1d"],
+      "severity": "WARNING",
+      "message_tpl": "📉 Tendance baissière sur {symbol} [{tf}] — MACD hist={macd_hist}, RSI 7={rsi_7}, close={close}, BB sup={bb_upper}",
+      "conditions": [
+        {
+          "left": { "indicator": "macd_hist", "offset": 0 },
+          "operator": "<",
+          "right": { "indicator": "macd_hist", "offset": 1 }
+        },
+        {
+          "left": { "indicator": "rsi_7", "offset": 0 },
+          "operator": ">",
+          "right": { "value": 40 }
+        },
+        {
+          "left": { "indicator": "close", "offset": 0 },
+          "operator": ">",
+          "right": { "indicator": "bb_upper", "offset": 0 }
+        }
+      ]
     }
   ]
 }
