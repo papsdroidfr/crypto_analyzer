@@ -172,7 +172,7 @@ Points de configuration importants :
 - `discord.webhook_urls.daily` : webhook des alertes quotidiennes
 - `discord.webhook_urls.hourly` : webhook des alertes horaires
 - `discord.webhook_urls.weekly` : webhook des alertes hebdomadaires
-- `discord.webhook_url` : webhook conservé pour le script de nettoyage Discord
+- `scripts/clean_discord_messages.py` : nettoie les anciens messages de tous les webhooks listés dans `discord.webhook_urls`
 - `discord.bot_token` : token du bot Discord utilisé par le script de nettoyage
 - `discord.channel_id` : identifiant du salon ou du fil ciblé par le script de nettoyage
 - `alert_daily` : règles d’alerte appliquées à la timeframe quotidienne (`1d`)
@@ -194,7 +194,6 @@ Points de configuration importants :
       "hourly": "https://discord.com/api/webhooks/...",
       "weekly": "https://discord.com/api/webhooks/..."
     },
-    "webhook_url": "https://discord.com/api/webhooks/...",
     "bot_token": "VOTRE_TOKEN_DE_BOT",
     "channel_id": "ID_DU_SALON"
   },
@@ -269,7 +268,7 @@ récupération et de calcul, puis un DataFrame Polars avec `date`, `symbol` et
 
 ## Nettoyage des messages Discord
 
-Le script `scripts/clean_discord_messages.py` supprime les messages anciens envoyés par le webhook configuré dans `discord.webhook_url`. Il utilise l'API Discord avec un token de bot, car un webhook seul ne peut pas parcourir l'historique.
+Le script `scripts/clean_discord_messages.py` supprime les messages anciens envoyés par tous les webhooks listés dans `discord.webhook_urls`. Il utilise l'API Discord avec un token de bot, car un webhook seul ne peut pas parcourir l'historique.
 
 Le bot doit avoir accès à l'historique du salon ou du fil et la permission de gérer les messages. Renseignez son token dans `discord.bot_token` du fichier de configuration, puis lancez d'abord une simulation :
 

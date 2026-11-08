@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Supprime les anciens messages publiés par le webhook CryptoAnalyzer."""
+"""Supprime les anciens messages publiés par les webhooks CryptoAnalyzer."""
 
 import argparse
 import json
@@ -99,7 +99,7 @@ def clean_messages(
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Supprime les messages anciens du webhook CryptoAnalyzer dans un salon ou un fil Discord."
+        description="Supprime les messages anciens des webhooks CryptoAnalyzer dans un salon ou un fil Discord."
     )
     parser.add_argument(
         "--config", default="config/settings.json",
@@ -133,23 +133,50 @@ def main() -> None:
     if not bot_token:
         parser.error("Renseignez discord.bot_token dans le fichier de configuration.")
 
-    webhook_id = webhook_id_from_url(discord_config["webhook_url"])
+    webhook_urls = discord_config.get("webhook_urls")
+    if not isinstance(webhook_urls, dict) or not webhook_urls:
+        parser.error("Renseignez discord.webhook_urls dans le fichier de configuration.")
+
+    webhook_ids = {}
+    for name, webhook_url in webhook_urls.items():
+        if not isinstance(webhook_url, str) or not webhook_url.strip():
+            parser.error(f"discord.webhook_urls.{name} doit être une URL non vide.")
+        try:
+            webhook_ids[name] = webhook_id_from_url(webhook_url)
+        except ValueError as exc:
+            parser.error(f"discord.webhook_urls.{name} : {exc}")
+
     cutoff = datetime.now(timezone.utc) - timedelta(days=args.days)
 
     with requests.Session() as session:
         session.headers.update({"Authorization": f"Bot {bot_token}"})
-        matched, deleted = clean_messages(
-            session,
-            channel_id,
-            webhook_id,
-            cutoff,
-            dry_run=args.dry_run,
-        )
+        total_matched = 0
+        total_deleted = 0
+        for name, webhook_id in webhook_ids.items():
+            matched, deleted = clean_messages(
+                session,
+                channel_id,
+                webhook_id,
+                cutoff,
+                dry_run=args.dry_run,
+            )
+            total_matched += matched
+            total_deleted += deleted
+            logger.info(
+                "Webhook %s : %d message(s) concerné(s), %d supprimé(s).",
+                name, matched, deleted,
+            )
 
     if args.dry_run:
-        logger.info("Simulation terminée : %d message(s) seraient supprimés.", matched)
+        logger.info(
+            "Simulation terminée : %d message(s) seraient supprimés sur %d webhook(s).",
+            total_matched, len(webhook_ids),
+        )
     else:
-        logger.info("Nettoyage terminé : %d message(s) supprimé(s).", deleted)
+        logger.info(
+            "Nettoyage terminé : %d message(s) supprimé(s) sur %d webhook(s).",
+            total_deleted, len(webhook_ids),
+        )
 
 
 if __name__ == "__main__":
