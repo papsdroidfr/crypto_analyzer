@@ -54,6 +54,17 @@ class JsonConfigLoader(IConfigLoader):
                     f"'discord.webhook_urls.{command}' doit être une URL non vide."
                 )
 
+        channel_ids = discord_config.get("channel_ids")
+        if not isinstance(channel_ids, dict):
+            raise ValueError("'discord.channel_ids' doit être un objet.")
+        for command in ("daily", "hourly", "weekly"):
+            channel_id = channel_ids.get(command)
+            if not isinstance(channel_id, str) or not channel_id.isdigit():
+                raise ValueError(
+                    f"'discord.channel_ids.{command}' doit être un identifiant "
+                    "Discord numérique."
+                )
+
         if not isinstance(config["symbols"], list) or not config["symbols"]:
             raise ValueError("'symbols' doit être une liste non vide.")
 

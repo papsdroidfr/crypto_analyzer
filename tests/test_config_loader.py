@@ -14,7 +14,12 @@ def test_load_valid_config(tmp_path):
                 "daily": "https://example/daily",
                 "hourly": "https://example/hourly",
                 "weekly": "https://example/weekly",
-            }
+            },
+            "channel_ids": {
+                "daily": "123",
+                "hourly": "456",
+                "weekly": "789",
+            },
         },
         "alert_daily": [],
         "alert_hourly": [],
@@ -37,7 +42,11 @@ def test_missing_command_webhook_raises(tmp_path):
             "webhook_urls": {
                 "daily": "https://example/daily",
                 "weekly": "https://example/weekly",
-            }
+            },
+            "channel_ids": {
+                "daily": "123",
+                "weekly": "789",
+            },
         },
         "alert_daily": [],
     }

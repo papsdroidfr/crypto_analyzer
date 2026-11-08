@@ -14,8 +14,12 @@ def test_main_cleans_messages_for_all_configured_webhooks(tmp_path, monkeypatch)
                 "hourly": "https://discord.com/api/webhooks/456/hourly-token",
                 "weekly": "https://discord.com/api/webhooks/789/weekly-token",
             },
+            "channel_ids": {
+                "daily": "111",
+                "hourly": "222",
+                "weekly": "333",
+            },
             "bot_token": "bot-token",
-            "channel_id": "987654",
         }
     }
     config_path = tmp_path / "settings.json"
@@ -37,9 +41,9 @@ def test_main_cleans_messages_for_all_configured_webhooks(tmp_path, monkeypatch)
     clean_discord_messages.main()
 
     assert calls == [
-        ("987654", "123", True),
-        ("987654", "456", True),
-        ("987654", "789", True),
+        ("111", "123", True),
+        ("222", "456", True),
+        ("333", "789", True),
     ]
 
 
@@ -50,7 +54,6 @@ def test_main_requires_webhook_urls(tmp_path, monkeypatch):
             "discord": {
                 "webhook_url": "https://discord.com/api/webhooks/123/legacy",
                 "bot_token": "bot-token",
-                "channel_id": "987654",
             }
         }),
         encoding="utf-8",

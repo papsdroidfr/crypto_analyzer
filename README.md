@@ -172,9 +172,11 @@ Points de configuration importants :
 - `discord.webhook_urls.daily` : webhook des alertes quotidiennes
 - `discord.webhook_urls.hourly` : webhook des alertes horaires
 - `discord.webhook_urls.weekly` : webhook des alertes hebdomadaires
+- `discord.channel_ids.daily` : salon des alertes quotidiennes et du nettoyage du webhook daily
+- `discord.channel_ids.hourly` : salon des alertes horaires et du nettoyage du webhook hourly
+- `discord.channel_ids.weekly` : salon des alertes hebdomadaires et du nettoyage du webhook weekly
 - `scripts/clean_discord_messages.py` : nettoie les anciens messages de tous les webhooks listés dans `discord.webhook_urls`
 - `discord.bot_token` : token du bot Discord utilisé par le script de nettoyage
-- `discord.channel_id` : identifiant du salon ou du fil ciblé par le script de nettoyage
 - `alert_daily` : règles d’alerte appliquées à la timeframe quotidienne (`1d`)
 - `alert_hourly` : règles d’alerte appliquées à la timeframe horaire (`1h`)
 - `alert_weekly` : règles d’alerte appliquées à la timeframe hebdomadaire (`1w`)
@@ -194,8 +196,12 @@ Points de configuration importants :
       "hourly": "https://discord.com/api/webhooks/...",
       "weekly": "https://discord.com/api/webhooks/..."
     },
-    "bot_token": "VOTRE_TOKEN_DE_BOT",
-    "channel_id": "ID_DU_SALON"
+    "channel_ids": {
+      "daily": "ID_DU_SALON_DAILY",
+      "hourly": "ID_DU_SALON_HOURLY",
+      "weekly": "ID_DU_SALON_WEEKLY"
+    },
+    "bot_token": "VOTRE_TOKEN_DE_BOT"
   },
   "alert_daily": [
     {

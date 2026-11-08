@@ -123,12 +123,6 @@ def main() -> None:
     with config_path.open("r", encoding="utf-8") as config_file:
         config = json.load(config_file)
     discord_config = config.get("discord", {})
-    channel_id = discord_config.get("channel_id")
-    if not channel_id:
-        parser.error("Renseignez discord.channel_id dans le fichier de configuration.")
-    if not channel_id.isdigit():
-        parser.error("discord.channel_id doit être un identifiant Discord numérique.")
-
     bot_token = discord_config.get("bot_token")
     if not bot_token:
         parser.error("Renseignez discord.bot_token dans le fichier de configuration.")
@@ -137,10 +131,24 @@ def main() -> None:
     if not isinstance(webhook_urls, dict) or not webhook_urls:
         parser.error("Renseignez discord.webhook_urls dans le fichier de configuration.")
 
+    channel_ids = discord_config.get("channel_ids")
+    if not isinstance(channel_ids, dict):
+        parser.error("Renseignez discord.channel_ids dans le fichier de configuration.")
+    if set(channel_ids) != set(webhook_urls):
+        parser.error(
+            "Les clés de discord.channel_ids doivent correspondre à celles de "
+            "discord.webhook_urls."
+        )
+
     webhook_ids = {}
     for name, webhook_url in webhook_urls.items():
         if not isinstance(webhook_url, str) or not webhook_url.strip():
             parser.error(f"discord.webhook_urls.{name} doit être une URL non vide.")
+        channel_id = channel_ids[name]
+        if not isinstance(channel_id, str) or not channel_id.isdigit():
+            parser.error(
+                f"discord.channel_ids.{name} doit être un identifiant Discord numérique."
+            )
         try:
             webhook_ids[name] = webhook_id_from_url(webhook_url)
         except ValueError as exc:
@@ -153,6 +161,7 @@ def main() -> None:
         total_matched = 0
         total_deleted = 0
         for name, webhook_id in webhook_ids.items():
+            channel_id = channel_ids[name]
             matched, deleted = clean_messages(
                 session,
                 channel_id,

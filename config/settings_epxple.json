@@ -38,7 +38,11 @@
     },
     "bot_token": "MON TOKEN BOT DISCORD ICI",
     "username": "CryptoAnalyzer 🤖",
-    "channel_id": "MON CHANNEL ID DISCORD ICI"
+    "channel_ids": {
+      "daily": "ID CHANNEL DISCORD DAILY ICI",
+      "hourly": "ID CHANNEL DISCORD HOURLY ICI",
+      "weekly": "ID CHANNEL DISCORD WEEKLY ICI"
+    }
   },
 
 
