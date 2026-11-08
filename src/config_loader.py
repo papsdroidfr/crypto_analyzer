@@ -17,10 +17,19 @@ class JsonConfigLoader(IConfigLoader):
     """Charge la configuration depuis un fichier JSON avec validation basique."""
 
     def __init__(
-        self, config_path: str | Path, *, validate_discord: bool = True
+        self,
+        config_path: str | Path,
+        *,
+        validate_discord: bool = True,
+        discord_commands: tuple[str, ...] | None = None,
     ) -> None:
         self._path = Path(config_path)
         self._validate_discord = validate_discord
+        self._discord_commands = (
+            discord_commands
+            if discord_commands is not None
+            else ("daily", "hourly", "weekly", "simulation")
+        )
 
     def load(self) -> dict[str, Any]:
         if not self._path.exists():
@@ -53,7 +62,7 @@ class JsonConfigLoader(IConfigLoader):
             webhook_urls = discord_config.get("webhook_urls")
             if not isinstance(webhook_urls, dict):
                 raise ValueError("'discord.webhook_urls' doit être un objet.")
-            for command in ("daily", "hourly", "weekly"):
+            for command in self._discord_commands:
                 webhook_url = webhook_urls.get(command)
                 if not isinstance(webhook_url, str) or not webhook_url.strip():
                     raise ValueError(
@@ -63,7 +72,7 @@ class JsonConfigLoader(IConfigLoader):
             channel_ids = discord_config.get("channel_ids")
             if not isinstance(channel_ids, dict):
                 raise ValueError("'discord.channel_ids' doit être un objet.")
-            for command in ("daily", "hourly", "weekly"):
+            for command in self._discord_commands:
                 channel_id = channel_ids.get(command)
                 if not isinstance(channel_id, str) or not channel_id.isdigit():
                     raise ValueError(

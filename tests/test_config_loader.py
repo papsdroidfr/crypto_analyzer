@@ -14,11 +14,13 @@ def test_load_valid_config(tmp_path):
                 "daily": "https://example/daily",
                 "hourly": "https://example/hourly",
                 "weekly": "https://example/weekly",
+                "simulation": "https://example/simulation",
             },
             "channel_ids": {
                 "daily": "123",
                 "hourly": "456",
                 "weekly": "789",
+                "simulation": "012",
             },
         },
         "alert_daily": [],
@@ -81,11 +83,13 @@ def test_invalid_channel_id_raises_by_default(tmp_path):
                 "daily": "https://example/daily",
                 "hourly": "https://example/hourly",
                 "weekly": "https://example/weekly",
+                "simulation": "https://example/simulation",
             },
             "channel_ids": {
                 "daily": 123,
                 "hourly": "456",
                 "weekly": "789",
+                "simulation": "012",
             },
         },
         "alert_daily": [],
@@ -95,6 +99,32 @@ def test_invalid_channel_id_raises_by_default(tmp_path):
 
     with pytest.raises(ValueError, match="discord.channel_ids.daily"):
         JsonConfigLoader(str(p)).load()
+
+
+def test_validate_selected_discord_route_only(tmp_path):
+    cfg = {
+        "symbols": ["BTCUSDC"],
+        "timeframes": [],
+        "discord": {
+            "webhook_urls": {
+                "simulation": "https://example/simulation",
+                "daily": "",
+            },
+            "channel_ids": {
+                "simulation": "123",
+                "daily": "invalid",
+            },
+        },
+        "alert_daily": [],
+    }
+    p = tmp_path / "simulation_discord.json"
+    p.write_text(json.dumps(cfg), encoding="utf-8")
+
+    loaded = JsonConfigLoader(
+        str(p), discord_commands=("simulation",)
+    ).load()
+
+    assert loaded["discord"]["webhook_urls"]["simulation"]
 
 
 def test_missing_file_raises():

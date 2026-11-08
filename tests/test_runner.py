@@ -140,6 +140,68 @@ def test_cmd_simulate_ignores_invalid_discord_settings(monkeypatch, tmp_path):
         lambda: None,
     )
 
-    result = runner.cmd_simulate(SimpleNamespace(config=str(config_path)))
+    result = runner.cmd_simulate(
+        SimpleNamespace(config=str(config_path), no_notifier=True)
+    )
 
     assert result.is_empty()
+
+
+def test_cmd_simulate_uses_simulation_webhook_by_default(monkeypatch):
+    config = {
+        "symbols": ["BTCUSDC"],
+        "timeframes": [],
+        "discord": {
+            "webhook_urls": {
+                "simulation": "https://example/simulation",
+            },
+            "username": "Analyzer",
+        },
+        "alert_daily": [],
+    }
+    created = {}
+
+    class FakeSimulator:
+        def __init__(self, **dependencies):
+            created.update(dependencies)
+
+        def simulate(self):
+            return pl.DataFrame(
+                schema={
+                    "date": pl.Date,
+                    "symbol": pl.String,
+                    "alert_id": pl.String,
+                }
+            )
+
+    monkeypatch.setattr(
+        "src.config_loader.JsonConfigLoader.load",
+        lambda self: config,
+    )
+    monkeypatch.setattr(
+        "src.alerts.alert_simulator.AlertSimulator", FakeSimulator
+    )
+    monkeypatch.setattr(
+        "src.charts.chart_generator.MatplotlibChartGenerator", lambda: None
+    )
+    monkeypatch.setattr(
+        "src.fetchers.binance_fetcher.BinanceFetcher", lambda: None
+    )
+    monkeypatch.setattr(
+        "src.indicators.technical_indicators.TechnicalIndicatorCalculator",
+        lambda: None,
+    )
+    monkeypatch.setattr(
+        "src.notifiers.discord_notifier.DiscordNotifier",
+        lambda webhook_url, username: SimpleNamespace(
+            webhook_url=webhook_url, username=username
+        ),
+    )
+
+    result = runner.cmd_simulate(
+        SimpleNamespace(config="settings.json", no_notifier=False)
+    )
+
+    assert result.is_empty()
+    assert created["notifier"].webhook_url == "https://example/simulation"
+    assert created["notifier"].username == "Analyzer"

@@ -172,19 +172,23 @@ Points de configuration importants :
 - `discord.webhook_urls.daily` : webhook des alertes quotidiennes
 - `discord.webhook_urls.hourly` : webhook des alertes horaires
 - `discord.webhook_urls.weekly` : webhook des alertes hebdomadaires
+- `discord.webhook_urls.simulation` : webhook de publication des graphiques de simulation
 - `discord.channel_ids.daily` : salon des alertes quotidiennes et du nettoyage du webhook daily
 - `discord.channel_ids.hourly` : salon des alertes horaires et du nettoyage du webhook hourly
 - `discord.channel_ids.weekly` : salon des alertes hebdomadaires et du nettoyage du webhook weekly
+- `discord.channel_ids.simulation` : salon de publication et de nettoyage du webhook de simulation
 - `scripts/clean_discord_messages.py` : nettoie les anciens messages de tous les webhooks listés dans `discord.webhook_urls`
 - `discord.bot_token` : token du bot Discord utilisé par le script de nettoyage
 - `alert_daily` : règles d’alerte appliquées à la timeframe quotidienne (`1d`)
 - `alert_hourly` : règles d’alerte appliquées à la timeframe horaire (`1h`)
 - `alert_weekly` : règles d’alerte appliquées à la timeframe hebdomadaire (`1w`)
 
-Les commandes `daily`, `hourly` et `weekly` acceptent `--no-notifier` pour lancer
-une analyse sans envoyer de notifications. La commande `simulate` n’utilise pas
-non plus de notifier. Dans ces modes, la configuration Discord n’est pas validée ;
-les autres paramètres restent soumis à validation.
+Les commandes `daily`, `hourly`, `weekly` et `simulate` acceptent `--no-notifier`
+pour lancer une analyse ou une simulation sans publication Discord. La simulation
+publie par défaut les graphiques sur `discord.webhook_urls.simulation`, avec un
+bilan par symbole des alertes daily et weekly détectées sur les 30 derniers jours.
+En mode `--no-notifier`, la configuration Discord n’est pas validée ; les autres
+paramètres restent soumis à validation.
 
 ## Exemple de configuration JSON
 
@@ -199,12 +203,14 @@ les autres paramètres restent soumis à validation.
     "webhook_urls": {
       "daily": "https://discord.com/api/webhooks/...",
       "hourly": "https://discord.com/api/webhooks/...",
-      "weekly": "https://discord.com/api/webhooks/..."
+      "weekly": "https://discord.com/api/webhooks/...",
+      "simulation": "https://discord.com/api/webhooks/..."
     },
     "channel_ids": {
       "daily": "ID_DU_SALON_DAILY",
       "hourly": "ID_DU_SALON_HOURLY",
-      "weekly": "ID_DU_SALON_WEEKLY"
+      "weekly": "ID_DU_SALON_WEEKLY",
+      "simulation": "ID_DU_SALON_SIMULATION"
     },
     "bot_token": "VOTRE_TOKEN_DE_BOT"
   },
@@ -275,11 +281,15 @@ python -m src.engine.runner chart BTCUSDC 1d
 La commande `simulate` évalue les règles `alert_daily` et `alert_weekly`
 sur les 30 derniers jours glissants, en UTC. Elle affiche les étapes de
 récupération et de calcul, puis un DataFrame Polars avec `date`, `symbol` et
-`alert_id`. Cette simulation ne publie aucune alerte sur Discord et génère un
-graphique journalier par symbole dans `charts_output` (ou `charts_output_dir`).
-Les alertes longues sont marquées par un triangle vert sous la bougie, les
-alertes courtes par un triangle rouge au-dessus. Les marqueurs weekly sont plus
-grands que les marqueurs daily.
+`alert_id`. Elle génère un graphique journalier par symbole dans `charts_output`
+(ou `charts_output_dir`).
+Par défaut, chaque graphique est également publié sur Discord via le webhook
+`simulation`, accompagné du bilan des alertes pour le symbole. Ajoutez
+`--no-notifier` pour désactiver ces publications.
+Les alertes longues sont marquées par un triangle sous la bougie, les alertes
+courtes par un triangle au-dessus. Les marqueurs weekly sont plus grands et
+utilisent des couleurs or/orange, distinctes des couleurs cyan/magenta des
+alertes daily.
 
 ## Nettoyage des messages Discord
 

@@ -153,7 +153,7 @@ def cmd_weekly(args) -> None:
 
 
 def cmd_simulate(args):
-    """Simule les alertes historiques sans construire ni appeler de notifier."""
+    """Simule les alertes historiques et publie les graphiques sur Discord."""
     from src.alerts.alert_rules import build_default_registry
     from src.alerts.alert_simulator import AlertSimulator
     from src.charts.chart_generator import MatplotlibChartGenerator
@@ -161,13 +161,29 @@ def cmd_simulate(args):
     from src.fetchers.binance_fetcher import BinanceFetcher
     from src.indicators.technical_indicators import TechnicalIndicatorCalculator
 
-    config = JsonConfigLoader(args.config, validate_discord=False).load()
+    no_notifier = getattr(args, "no_notifier", False)
+    if no_notifier:
+        config = JsonConfigLoader(args.config, validate_discord=False).load()
+    else:
+        config = JsonConfigLoader(
+            args.config, discord_commands=("simulation",)
+        ).load()
+    notifier = None
+    if not no_notifier:
+        from src.notifiers.discord_notifier import DiscordNotifier
+
+        notifier = DiscordNotifier(
+            webhook_url=config["discord"]["webhook_urls"]["simulation"],
+            username=config["discord"].get("username", "CryptoAnalyzer 🤖"),
+        )
+
     simulator = AlertSimulator(
         fetcher=BinanceFetcher(),
         calculator=TechnicalIndicatorCalculator(),
         rule_registry=build_default_registry(),
         config=config,
         chart_generator=MatplotlibChartGenerator(),
+        notifier=notifier,
     )
     result = simulator.simulate()
     _print_simulation_results(result)
@@ -231,9 +247,15 @@ def main() -> None:
             help="Désactive l'envoi Discord (dry-run / test)",
         )
 
-    subparsers.add_parser(
+    simulate_parser = subparsers.add_parser(
         "simulate",
         help="Simuler les alertes daily et weekly sur les 30 derniers jours",
+    )
+    simulate_parser.add_argument(
+        "--no-notifier",
+        action="store_true",
+        default=False,
+        help="Désactive la publication des graphiques sur Discord",
     )
 
     chart_parser = subparsers.add_parser("chart", help="Générer un graphique ad-hoc")

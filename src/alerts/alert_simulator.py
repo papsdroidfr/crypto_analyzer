@@ -1,7 +1,7 @@
 """Simulation historique des alertes quotidiennes et hebdomadaires."""
 
 import logging
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
@@ -9,9 +9,11 @@ import polars as pl
 
 from src.alerts.alert_rules import AlertRuleRegistry
 from src.interfaces import (
+    Alert,
     IDataFetcher,
     IChartGenerator,
     IIndicatorCalculator,
+    INotifier,
     OHLCVData,
     Symbol,
     Timeframe,
@@ -40,12 +42,14 @@ class AlertSimulator:
         rule_registry: AlertRuleRegistry,
         config: dict[str, Any],
         chart_generator: IChartGenerator | None = None,
+        notifier: INotifier | None = None,
     ) -> None:
         self._fetcher = fetcher
         self._calculator = calculator
         self._registry = rule_registry
         self._config = config
         self._chart_generator = chart_generator
+        self._notifier = notifier
 
     def simulate(self, now: datetime | None = None) -> pl.DataFrame:
         """Retourne une ligne par règle déclenchée et par bougie clôturée."""
@@ -180,7 +184,9 @@ class AlertSimulator:
         if not result.is_empty():
             result = result.sort(["date", "symbol", "alert_id"])
         if self._chart_generator is not None:
-            self._generate_simulation_charts(result, daily_chart_data)
+            self._generate_simulation_charts(
+                result, daily_chart_data, start.date(), end.date()
+            )
         print(f"Simulation terminée : {len(result)} alerte(s) trouvée(s).", flush=True)
         return result
 
@@ -188,6 +194,8 @@ class AlertSimulator:
         self,
         result: pl.DataFrame,
         daily_chart_data: dict[str, tuple[OHLCVData, pl.DataFrame]],
+        start_date: date,
+        end_date: date,
     ) -> None:
         if self._chart_generator is None:
             return
@@ -219,6 +227,33 @@ class AlertSimulator:
                 alert_flags=alert_flags,
             )
             logger.info("Graphique de simulation généré : %s", path)
+            if self._notifier is not None:
+                symbol_alerts = result.filter(pl.col("symbol") == symbol)
+                period_alerts = symbol_alerts.filter(
+                    (pl.col("date") >= start_date)
+                    & (pl.col("date") <= end_date)
+                )
+                daily_count = period_alerts.filter(
+                    pl.col("alert_id").str.starts_with("D")
+                ).height
+                weekly_count = period_alerts.filter(
+                    pl.col("alert_id").str.starts_with("W")
+                ).height
+                total_count = daily_count + weekly_count
+                summary = (
+                    f"Bilan des alertes sur les 30 derniers jours pour {symbol} : "
+                    f"{total_count} au total ({daily_count} daily, "
+                    f"{weekly_count} weekly)."
+                )
+                alert = Alert(
+                    symbol=data.symbol,
+                    timeframe=chart_data.timeframe,
+                    rule_name="Bilan des alertes — 30 derniers jours",
+                    message=summary,
+                    triggered_at=datetime.now(timezone.utc),
+                    chart_path=path,
+                )
+                self._notifier.send_chart(alert, path)
 
     def _task_config(
         self, timeframe_value: str

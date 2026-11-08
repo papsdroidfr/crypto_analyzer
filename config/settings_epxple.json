@@ -34,14 +34,16 @@
     "webhook_urls": {
       "daily": "WEBHOOK DISCORD DAILY ICI",
       "hourly": "WEBHOOK DISCORD HOURLY ICI",
-      "weekly": "WEBHOOK DISCORD WEEKLY ICI"
+      "weekly": "WEBHOOK DISCORD WEEKLY ICI",
+      "simulation": "WEBHOOK DISCORD SIMULATION ICI"
     },
     "bot_token": "MON TOKEN BOT DISCORD ICI",
     "username": "CryptoAnalyzer 🤖",
     "channel_ids": {
       "daily": "ID CHANNEL DISCORD DAILY ICI",
       "hourly": "ID CHANNEL DISCORD HOURLY ICI",
-      "weekly": "ID CHANNEL DISCORD WEEKLY ICI"
+      "weekly": "ID CHANNEL DISCORD WEEKLY ICI",
+      "simulation": "ID CHANNEL DISCORD SIMULATION ICI"
     }
   },
 

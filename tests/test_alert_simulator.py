@@ -1,7 +1,7 @@
+import re
 from datetime import datetime, timedelta, timezone
 
 import polars as pl
-import re
 
 from src.alerts.alert_rules import build_default_registry
 from src.alerts.alert_simulator import AlertSimulator
@@ -32,6 +32,17 @@ class FakeChartGenerator:
         return output_path
 
 
+class FakeNotifier:
+    def __init__(self):
+        self.sent_charts = []
+
+    def send(self, alert):
+        raise AssertionError("Simulation summary should include its chart")
+
+    def send_chart(self, alert, chart_path):
+        self.sent_charts.append((alert, chart_path))
+
+
 def make_ohlcv(timestamps: list[datetime]) -> pl.DataFrame:
     return pl.DataFrame({
         "timestamp": timestamps,
@@ -43,7 +54,7 @@ def make_ohlcv(timestamps: list[datetime]) -> pl.DataFrame:
     })
 
 
-def test_simulate_returns_daily_and_weekly_alerts_without_notifications(capsys):
+def test_simulate_returns_alerts_and_publishes_chart_summaries(capsys):
     now = datetime(2026, 2, 1, tzinfo=timezone.utc)
     daily_timestamps = [
         datetime(2026, 1, 1, tzinfo=timezone.utc) + timedelta(days=day)
@@ -88,12 +99,14 @@ def test_simulate_returns_daily_and_weekly_alerts_without_notifications(capsys):
     }
 
     chart_generator = FakeChartGenerator()
+    notifier = FakeNotifier()
     simulator = AlertSimulator(
         fetcher=fetcher,
         calculator=TechnicalIndicatorCalculator(),
         rule_registry=build_default_registry(),
         config=config,
         chart_generator=chart_generator,
+        notifier=notifier,
     )
 
     result = simulator.simulate(now=now)
@@ -121,6 +134,17 @@ def test_simulate_returns_daily_and_weekly_alerts_without_notifications(capsys):
         for timeframe in ("1d", "1w")
     ]
     assert len(chart_generator.calls) == 2
+    assert len(notifier.sent_charts) == 2
+    for (alert, chart_path), (data, output_path, _) in zip(
+        notifier.sent_charts, chart_generator.calls
+    ):
+        assert alert.rule_name == "Bilan des alertes — 30 derniers jours"
+        assert alert.symbol == data.symbol
+        assert alert.message == (
+            f"Bilan des alertes sur les 30 derniers jours pour {data.symbol} : "
+            "33 au total (30 daily, 3 weekly)."
+        )
+        assert chart_path == output_path
     for data, output_path, alert_flags in chart_generator.calls:
         assert data.timeframe.value == "1d"
         assert data.timeframe.candles_chart >= 38
@@ -199,6 +223,7 @@ def test_simulate_includes_last_closed_weekly_candle_before_period():
         }],
     }
 
+    notifier = FakeNotifier()
     result = AlertSimulator(
         fetcher=FakeFetcher(
             make_ohlcv(daily_timestamps),
@@ -207,6 +232,8 @@ def test_simulate_includes_last_closed_weekly_candle_before_period():
         calculator=TechnicalIndicatorCalculator(),
         rule_registry=build_default_registry(),
         config=config,
+        chart_generator=FakeChartGenerator(),
+        notifier=notifier,
     ).simulate(now=now)
 
     assert result.filter(pl.col("alert_id") == "WLTEST")["date"].to_list() == [
@@ -220,3 +247,7 @@ def test_simulate_includes_last_closed_weekly_candle_before_period():
         "symbol": "BTCUSDC",
         "alert_id": "WLTEST",
     }
+    assert notifier.sent_charts[0][0].message == (
+        "Bilan des alertes sur les 30 derniers jours pour BTCUSDC : "
+        "33 au total (30 daily, 3 weekly)."
+    )
