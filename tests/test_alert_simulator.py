@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta, timezone
 
 import polars as pl
+import re
 
 from src.alerts.alert_rules import build_default_registry
 from src.alerts.alert_simulator import AlertSimulator
@@ -20,6 +21,15 @@ class FakeFetcher:
             timeframe=timeframe,
             df=self._frames[timeframe.value],
         )
+
+
+class FakeChartGenerator:
+    def __init__(self):
+        self.calls = []
+
+    def generate(self, data, enriched_df, output_path, alert_flags=None):
+        self.calls.append((data, output_path, alert_flags))
+        return output_path
 
 
 def make_ohlcv(timestamps: list[datetime]) -> pl.DataFrame:
@@ -54,7 +64,7 @@ def test_simulate_returns_daily_and_weekly_alerts_without_notifications(capsys):
             {"value": "1w", "label": "1 semaine", "candles_chart": 10},
         ],
         "alert_daily": [{
-            "id": "DTEST",
+            "id": "DLTEST",
             "name": "daily_positive_close",
             "type": "threshold",
             "timeframes": ["1d"],
@@ -65,7 +75,7 @@ def test_simulate_returns_daily_and_weekly_alerts_without_notifications(capsys):
             }],
         }],
         "alert_weekly": [{
-            "id": "WTEST",
+            "id": "WLTEST",
             "name": "weekly_positive_close",
             "type": "threshold",
             "timeframes": ["1w"],
@@ -77,11 +87,13 @@ def test_simulate_returns_daily_and_weekly_alerts_without_notifications(capsys):
         }],
     }
 
+    chart_generator = FakeChartGenerator()
     simulator = AlertSimulator(
         fetcher=fetcher,
         calculator=TechnicalIndicatorCalculator(),
         rule_registry=build_default_registry(),
         config=config,
+        chart_generator=chart_generator,
     )
 
     result = simulator.simulate(now=now)
@@ -92,8 +104,8 @@ def test_simulate_returns_daily_and_weekly_alerts_without_notifications(capsys):
         "symbol": pl.String,
         "alert_id": pl.String,
     }
-    daily_results = result.filter(pl.col("alert_id") == "DTEST")
-    weekly_results = result.filter(pl.col("alert_id") == "WTEST")
+    daily_results = result.filter(pl.col("alert_id") == "DLTEST")
+    weekly_results = result.filter(pl.col("alert_id") == "WLTEST")
     assert len(daily_results) == 60
     assert daily_results["date"].min() == datetime(2026, 1, 2).date()
     assert daily_results["date"].max() == datetime(2026, 1, 31).date()
@@ -108,6 +120,19 @@ def test_simulate_returns_daily_and_weekly_alerts_without_notifications(capsys):
         for symbol in ("BTCUSDC", "ETHUSDC")
         for timeframe in ("1d", "1w")
     ]
+    assert len(chart_generator.calls) == 2
+    for data, output_path, alert_flags in chart_generator.calls:
+        assert data.timeframe.value == "1d"
+        assert data.timeframe.candles_chart >= 38
+        assert re.fullmatch(
+            rf".*/{data.symbol}_1d_\d{{8}}_\d{{6}}\.png",
+            output_path,
+        )
+        assert len(alert_flags) == 33
+        assert {(alert_id[0], alert_id[1]) for _, alert_id in alert_flags} == {
+            ("D", "L"),
+            ("W", "L"),
+        }
     assert "Simulation terminée : 66 alerte(s) trouvée(s)." in capsys.readouterr().out
 
 
@@ -153,7 +178,7 @@ def test_simulate_includes_last_closed_weekly_candle_before_period():
     config = {
         "symbols": ["BTCUSDC"],
         "alert_daily": [{
-            "id": "DTEST",
+            "id": "DLTEST",
             "type": "threshold",
             "timeframes": ["1d"],
             "conditions": [{
@@ -163,7 +188,7 @@ def test_simulate_includes_last_closed_weekly_candle_before_period():
             }],
         }],
         "alert_weekly": [{
-            "id": "WTEST",
+            "id": "WLTEST",
             "type": "threshold",
             "timeframes": ["1w"],
             "conditions": [{
@@ -184,7 +209,7 @@ def test_simulate_includes_last_closed_weekly_candle_before_period():
         config=config,
     ).simulate(now=now)
 
-    assert result.filter(pl.col("alert_id") == "WTEST")["date"].to_list() == [
+    assert result.filter(pl.col("alert_id") == "WLTEST")["date"].to_list() == [
         datetime(2025, 12, 28).date(),
         datetime(2026, 1, 4).date(),
         datetime(2026, 1, 11).date(),
@@ -193,5 +218,5 @@ def test_simulate_includes_last_closed_weekly_candle_before_period():
     assert result.row(0, named=True) == {
         "date": datetime(2025, 12, 28).date(),
         "symbol": "BTCUSDC",
-        "alert_id": "WTEST",
+        "alert_id": "WLTEST",
     }

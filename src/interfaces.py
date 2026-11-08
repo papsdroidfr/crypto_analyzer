@@ -5,7 +5,7 @@ Toutes les dépendances pointent vers ces abstractions, jamais vers des concrets
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import date, datetime
 from typing import Any, Optional
 import polars as pl
 
@@ -123,6 +123,7 @@ class IChartGenerator(ABC):
         data: OHLCVData,
         enriched_df: pl.DataFrame,
         output_path: str,
+        alert_flags: Optional[list[tuple[date, str]]] = None,
     ) -> str:
         """Génère le graphique et retourne le chemin du fichier produit."""
         ...

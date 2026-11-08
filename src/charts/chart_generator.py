@@ -2,7 +2,7 @@
 chart_generator.py — Génération de graphiques OHLCV + indicateurs techniques.
 
 Layout multi-panneaux :
-  [1] Cours OHLCV (chandeliers) + SMA_7 / SMA_30 / SMA_200 + Bollinger
+  [1] Cours OHLCV (chandeliers) + SMA_7 / SMA_50 / SMA_200 + Bollinger
   [2] Volume
   [3] MACD (ligne + signal + histogramme)
   [4] RSI_7 et RSI_14
@@ -12,7 +12,9 @@ Principe D : dépend de IChartGenerator, pas d'un concret.
 """
 
 import logging
+from datetime import date
 from pathlib import Path
+from typing import Optional
 
 import matplotlib
 matplotlib.use("Agg")   # Backend non-interactif obligatoire sur Raspberry Pi headless
@@ -49,6 +51,7 @@ class MatplotlibChartGenerator(IChartGenerator):
         data: OHLCVData,
         enriched_df: pl.DataFrame,
         output_path: str,
+        alert_flags: Optional[list[tuple[date, str]]] = None,
     ) -> str:
         Path(output_path).parent.mkdir(parents=True, exist_ok=True)
 
@@ -64,7 +67,7 @@ class MatplotlibChartGenerator(IChartGenerator):
         )
 
         fig, axes = self._create_figure(title)
-        self._plot_ohlcv(axes[0], df)
+        self._plot_ohlcv(axes[0], df, alert_flags or [])
         self._plot_volume(axes[1], df)
         self._plot_macd(axes[2], df)
         self._plot_rsi(axes[3], df)
@@ -114,7 +117,7 @@ class MatplotlibChartGenerator(IChartGenerator):
     # Panneau 1 : OHLCV + SMA + Bollinger
     # ------------------------------------------------------------------
 
-    def _plot_ohlcv(self, ax, df) -> None:
+    def _plot_ohlcv(self, ax, df, alert_flags: list[tuple[date, str]]) -> None:
         ax.set_ylabel("Prix", color="white")
         ax.set_title("OHLCV + Moyennes mobiles + Bollinger", color="#aaaacc", fontsize=9)
 
@@ -139,10 +142,12 @@ class MatplotlibChartGenerator(IChartGenerator):
                 color=color, linewidth=0.8, zorder=1,
             )
 
+        self._plot_alert_flags(ax, df, dates, alert_flags)
+
         # Moyennes mobiles
         for col, color, lw, label in [
             ("sma_7",   "#FFD700", 1.2, "SMA 7"),
-            ("sma_30",  "#FF8C00", 1.2, "SMA 30"),
+            ("sma_50",  "#00CED1", 1.2, "SMA 50"),
             ("sma_200", "#FF4500", 1.5, "SMA 200"),
         ]:
             if col in df.columns:
@@ -173,6 +178,63 @@ class MatplotlibChartGenerator(IChartGenerator):
         )
         ax.set_xlim(dates[0] - width, dates[-1] + width)
         ax.xaxis_date()
+
+    def _plot_alert_flags(
+        self,
+        ax,
+        df,
+        dates: np.ndarray,
+        alert_flags: list[tuple[date, str]],
+    ) -> None:
+        flags_by_date: dict[date, list[str]] = {}
+        for alert_date, alert_id in alert_flags:
+            flags_by_date.setdefault(alert_date, []).append(alert_id)
+
+        seen_labels: set[str] = set()
+        for index, row in df.iterrows():
+            candle_flags = flags_by_date.get(row["timestamp"].date(), [])
+            price_range = max(
+                row["high"] - row["low"],
+                abs(row["close"] - row["open"]),
+                abs(row["close"]) * 0.001,
+            )
+            long_count = 0
+            short_count = 0
+            for alert_id in candle_flags:
+                frequency, direction = alert_id[0], alert_id[1]
+                if frequency not in ("D", "W") or direction not in ("S", "L"):
+                    raise ValueError(
+                        f"Identifiant d'alerte invalide pour le graphique : "
+                        f"'{alert_id}'."
+                    )
+
+                is_weekly = frequency == "W"
+                is_long = direction == "L"
+                if is_long:
+                    long_count += 1
+                    y = row["low"] - price_range * 0.12 * long_count
+                    marker = "^"
+                    color = "#FFD700" if is_weekly else "#00BFFF"
+                    label = "Weekly Long" if is_weekly else "Daily Long"
+                else:
+                    short_count += 1
+                    y = row["high"] + price_range * 0.12 * short_count
+                    marker = "v"
+                    color = "#FF8C00" if is_weekly else "#E040FB"
+                    label = "Weekly Short" if is_weekly else "Daily Short"
+
+                ax.scatter(
+                    dates[index],
+                    y,
+                    marker=marker,
+                    color=color,
+                    s=220 if is_weekly else 55,
+                    edgecolors="white",
+                    linewidths=0.5,
+                    label=label if label not in seen_labels else None,
+                    zorder=5,
+                )
+                seen_labels.add(label)
 
     # ------------------------------------------------------------------
     # Panneau 2 : Volume

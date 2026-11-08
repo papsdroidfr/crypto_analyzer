@@ -275,7 +275,11 @@ python -m src.engine.runner chart BTCUSDC 1d
 La commande `simulate` évalue les règles `alert_daily` et `alert_weekly`
 sur les 30 derniers jours glissants, en UTC. Elle affiche les étapes de
 récupération et de calcul, puis un DataFrame Polars avec `date`, `symbol` et
-`alert_id`. Cette simulation ne publie aucune alerte sur Discord.
+`alert_id`. Cette simulation ne publie aucune alerte sur Discord et génère un
+graphique journalier par symbole dans `charts_output` (ou `charts_output_dir`).
+Les alertes longues sont marquées par un triangle vert sous la bougie, les
+alertes courtes par un triangle rouge au-dessus. Les marqueurs weekly sont plus
+grands que les marqueurs daily.
 
 ## Nettoyage des messages Discord
 

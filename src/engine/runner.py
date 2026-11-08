@@ -156,6 +156,7 @@ def cmd_simulate(args):
     """Simule les alertes historiques sans construire ni appeler de notifier."""
     from src.alerts.alert_rules import build_default_registry
     from src.alerts.alert_simulator import AlertSimulator
+    from src.charts.chart_generator import MatplotlibChartGenerator
     from src.config_loader import JsonConfigLoader
     from src.fetchers.binance_fetcher import BinanceFetcher
     from src.indicators.technical_indicators import TechnicalIndicatorCalculator
@@ -166,6 +167,7 @@ def cmd_simulate(args):
         calculator=TechnicalIndicatorCalculator(),
         rule_registry=build_default_registry(),
         config=config,
+        chart_generator=MatplotlibChartGenerator(),
     )
     result = simulator.simulate()
     _print_simulation_results(result)
