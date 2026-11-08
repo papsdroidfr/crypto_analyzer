@@ -32,6 +32,11 @@
 
   "discord": {
     "webhook_url": "MON WEBHOOK DISCORD ICI",
+    "webhook_urls": {
+      "daily": "WEBHOOK DISCORD DAILY ICI",
+      "hourly": "WEBHOOK DISCORD HOURLY ICI",
+      "weekly": "WEBHOOK DISCORD WEEKLY ICI"
+    },
     "bot_token": "MON TOKEN BOT DISCORD ICI",
     "username": "CryptoAnalyzer 🤖",
     "channel_id": "MON CHANNEL ID DISCORD ICI"

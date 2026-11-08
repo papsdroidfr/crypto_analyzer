@@ -169,7 +169,10 @@ Fichiers principaux :
 Points de configuration importants :
 - `symbols` : paires à surveiller
 - `timeframes` : périodes de temps utilisées
-- `discord.webhook_url` : webhook Discord pour les notifications
+- `discord.webhook_urls.daily` : webhook des alertes quotidiennes
+- `discord.webhook_urls.hourly` : webhook des alertes horaires
+- `discord.webhook_urls.weekly` : webhook des alertes hebdomadaires
+- `discord.webhook_url` : webhook conservé pour le script de nettoyage Discord
 - `discord.bot_token` : token du bot Discord utilisé par le script de nettoyage
 - `discord.channel_id` : identifiant du salon ou du fil ciblé par le script de nettoyage
 - `alert_daily` : règles d’alerte appliquées à la timeframe quotidienne (`1d`)
@@ -186,9 +189,14 @@ Points de configuration importants :
     {"value": "1d", "label": "1 jour", "candles_chart": 90}
   ],
   "discord": {
-        "webhook_url": "https://discord.com/api/webhooks/...",
-      "bot_token": "VOTRE_TOKEN_DE_BOT",
-      "channel_id": "ID_DU_SALON"
+    "webhook_urls": {
+      "daily": "https://discord.com/api/webhooks/...",
+      "hourly": "https://discord.com/api/webhooks/...",
+      "weekly": "https://discord.com/api/webhooks/..."
+    },
+    "webhook_url": "https://discord.com/api/webhooks/...",
+    "bot_token": "VOTRE_TOKEN_DE_BOT",
+    "channel_id": "ID_DU_SALON"
   },
   "alert_daily": [
     {

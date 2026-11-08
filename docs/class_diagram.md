@@ -182,7 +182,7 @@ classDiagram
     class Runner {
         <<entry point>>
         +main()
-        -_build_engine(config_path, no_notifier) AlertEngine
+        -_build_engine(config_path, no_notifier, command) AlertEngine
         +cmd_daily(args)
         +cmd_hourly(args)
         +cmd_chart(args)

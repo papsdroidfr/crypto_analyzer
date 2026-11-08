@@ -9,7 +9,13 @@ def test_load_valid_config(tmp_path):
     cfg = {
         "symbols": ["BTCUSDC"],
         "timeframes": [{"value": "1d", "label": "1d", "candles_chart": 7}],
-        "discord": {"webhook": "https://example"},
+        "discord": {
+            "webhook_urls": {
+                "daily": "https://example/daily",
+                "hourly": "https://example/hourly",
+                "weekly": "https://example/weekly",
+            }
+        },
         "alert_daily": [],
         "alert_hourly": [],
         "alert_weekly": [],
@@ -21,6 +27,25 @@ def test_load_valid_config(tmp_path):
     loaded = loader.load()
     assert isinstance(loaded, dict)
     assert loaded["symbols"] == ["BTCUSDC"]
+
+
+def test_missing_command_webhook_raises(tmp_path):
+    cfg = {
+        "symbols": ["BTCUSDC"],
+        "timeframes": [],
+        "discord": {
+            "webhook_urls": {
+                "daily": "https://example/daily",
+                "weekly": "https://example/weekly",
+            }
+        },
+        "alert_daily": [],
+    }
+    p = tmp_path / "missing_webhook.json"
+    p.write_text(json.dumps(cfg), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="discord.webhook_urls.hourly"):
+        JsonConfigLoader(str(p)).load()
 
 
 def test_missing_file_raises():

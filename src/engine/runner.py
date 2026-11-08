@@ -17,6 +17,7 @@ import logging
 import sys
 from datetime import date
 from pathlib import Path
+from typing import Literal
 
 import polars as pl
 
@@ -77,7 +78,12 @@ class NullNotifier(INotifier):
 # Composition root
 # ---------------------------------------------------------------------------
 
-def _build_engine(config_path: str = "config/settings.json", no_notifier: bool = False):
+def _build_engine(
+    config_path: str = "config/settings.json",
+    no_notifier: bool = False,
+    *,
+    command: Literal["daily", "hourly", "weekly"],
+):
     """Assemble toutes les dépendances. Si no_notifier=True, utilise NullNotifier."""
     from src.alerts.alert_engine import AlertEngine
     from src.alerts.alert_rules import build_default_registry
@@ -99,7 +105,7 @@ def _build_engine(config_path: str = "config/settings.json", no_notifier: bool =
         notifier = NullNotifier()
     else:
         notifier = DiscordNotifier(
-            webhook_url=config["discord"]["webhook_url"],
+            webhook_url=config["discord"]["webhook_urls"][command],
             username=config["discord"].get("username", "CryptoAnalyzer 🤖"),
         )
 
@@ -116,7 +122,9 @@ def _build_engine(config_path: str = "config/settings.json", no_notifier: bool =
 def cmd_daily(args) -> None:
     logger.info("Commande : analyse quotidienne%s", " [dry-run]" if args.no_notifier else "")
     Path("logs").mkdir(exist_ok=True)
-    engine = _build_engine(args.config, no_notifier=args.no_notifier)
+    engine = _build_engine(
+        args.config, no_notifier=args.no_notifier, command="daily"
+    )
     alerts = engine.run_daily()
     logger.info("Terminé. %d alerte(s) émise(s).", len(alerts))
 
@@ -124,14 +132,18 @@ def cmd_daily(args) -> None:
 def cmd_hourly(args) -> None:
     logger.info("Commande : surveillance horaire%s", " [dry-run]" if args.no_notifier else "")
     Path("logs").mkdir(exist_ok=True)
-    engine = _build_engine(args.config, no_notifier=args.no_notifier)
+    engine = _build_engine(
+        args.config, no_notifier=args.no_notifier, command="hourly"
+    )
     alerts = engine.run_hourly()
     logger.info("Terminé. %d alerte(s) horaire(s).", len(alerts))
 
 def cmd_weekly(args) -> None:
     logger.info("Commande : analyse hebdomadaire%s", " [dry-run]" if args.no_notifier else "")
     Path("logs").mkdir(exist_ok=True)
-    engine = _build_engine(args.config, no_notifier=args.no_notifier)
+    engine = _build_engine(
+        args.config, no_notifier=args.no_notifier, command="weekly"
+    )
     alerts = engine.run_weekly()
     logger.info("Terminé. %d alerte(s) hebdomadaire(s).", len(alerts))
 

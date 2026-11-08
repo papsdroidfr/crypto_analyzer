@@ -40,6 +40,20 @@ class JsonConfigLoader(IConfigLoader):
             if key not in config:
                 raise ValueError(f"Clé obligatoire manquante dans la config : '{key}'")
 
+        discord_config = config["discord"]
+        if not isinstance(discord_config, dict):
+            raise ValueError("'discord' doit être un objet.")
+
+        webhook_urls = discord_config.get("webhook_urls")
+        if not isinstance(webhook_urls, dict):
+            raise ValueError("'discord.webhook_urls' doit être un objet.")
+        for command in ("daily", "hourly", "weekly"):
+            webhook_url = webhook_urls.get(command)
+            if not isinstance(webhook_url, str) or not webhook_url.strip():
+                raise ValueError(
+                    f"'discord.webhook_urls.{command}' doit être une URL non vide."
+                )
+
         if not isinstance(config["symbols"], list) or not config["symbols"]:
             raise ValueError("'symbols' doit être une liste non vide.")
 
