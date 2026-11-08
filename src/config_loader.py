@@ -16,8 +16,11 @@ logger = logging.getLogger(__name__)
 class JsonConfigLoader(IConfigLoader):
     """Charge la configuration depuis un fichier JSON avec validation basique."""
 
-    def __init__(self, config_path: str | Path) -> None:
+    def __init__(
+        self, config_path: str | Path, *, validate_discord: bool = True
+    ) -> None:
         self._path = Path(config_path)
+        self._validate_discord = validate_discord
 
     def load(self) -> dict[str, Any]:
         if not self._path.exists():
@@ -35,35 +38,38 @@ class JsonConfigLoader(IConfigLoader):
     # ------------------------------------------------------------------
 
     def _validate(self, config: dict[str, Any]) -> None:
-        required_keys = ["symbols", "timeframes", "discord"]
+        required_keys = ["symbols", "timeframes"]
+        if self._validate_discord:
+            required_keys.append("discord")
         for key in required_keys:
             if key not in config:
                 raise ValueError(f"Clé obligatoire manquante dans la config : '{key}'")
 
-        discord_config = config["discord"]
-        if not isinstance(discord_config, dict):
-            raise ValueError("'discord' doit être un objet.")
+        if self._validate_discord:
+            discord_config = config["discord"]
+            if not isinstance(discord_config, dict):
+                raise ValueError("'discord' doit être un objet.")
 
-        webhook_urls = discord_config.get("webhook_urls")
-        if not isinstance(webhook_urls, dict):
-            raise ValueError("'discord.webhook_urls' doit être un objet.")
-        for command in ("daily", "hourly", "weekly"):
-            webhook_url = webhook_urls.get(command)
-            if not isinstance(webhook_url, str) or not webhook_url.strip():
-                raise ValueError(
-                    f"'discord.webhook_urls.{command}' doit être une URL non vide."
-                )
+            webhook_urls = discord_config.get("webhook_urls")
+            if not isinstance(webhook_urls, dict):
+                raise ValueError("'discord.webhook_urls' doit être un objet.")
+            for command in ("daily", "hourly", "weekly"):
+                webhook_url = webhook_urls.get(command)
+                if not isinstance(webhook_url, str) or not webhook_url.strip():
+                    raise ValueError(
+                        f"'discord.webhook_urls.{command}' doit être une URL non vide."
+                    )
 
-        channel_ids = discord_config.get("channel_ids")
-        if not isinstance(channel_ids, dict):
-            raise ValueError("'discord.channel_ids' doit être un objet.")
-        for command in ("daily", "hourly", "weekly"):
-            channel_id = channel_ids.get(command)
-            if not isinstance(channel_id, str) or not channel_id.isdigit():
-                raise ValueError(
-                    f"'discord.channel_ids.{command}' doit être un identifiant "
-                    "Discord numérique."
-                )
+            channel_ids = discord_config.get("channel_ids")
+            if not isinstance(channel_ids, dict):
+                raise ValueError("'discord.channel_ids' doit être un objet.")
+            for command in ("daily", "hourly", "weekly"):
+                channel_id = channel_ids.get(command)
+                if not isinstance(channel_id, str) or not channel_id.isdigit():
+                    raise ValueError(
+                        f"'discord.channel_ids.{command}' doit être un identifiant "
+                        "Discord numérique."
+                    )
 
         if not isinstance(config["symbols"], list) or not config["symbols"]:
             raise ValueError("'symbols' doit être une liste non vide.")

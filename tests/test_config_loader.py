@@ -57,6 +57,46 @@ def test_missing_command_webhook_raises(tmp_path):
         JsonConfigLoader(str(p)).load()
 
 
+def test_invalid_discord_settings_are_skipped_when_validation_disabled(tmp_path):
+    cfg = {
+        "symbols": ["BTCUSDC"],
+        "timeframes": [],
+        "discord": {"channel_ids": {"daily": 123}},
+        "alert_daily": [],
+    }
+    p = tmp_path / "invalid_discord.json"
+    p.write_text(json.dumps(cfg), encoding="utf-8")
+
+    loaded = JsonConfigLoader(str(p), validate_discord=False).load()
+
+    assert loaded["discord"]["channel_ids"]["daily"] == 123
+
+
+def test_invalid_channel_id_raises_by_default(tmp_path):
+    cfg = {
+        "symbols": ["BTCUSDC"],
+        "timeframes": [],
+        "discord": {
+            "webhook_urls": {
+                "daily": "https://example/daily",
+                "hourly": "https://example/hourly",
+                "weekly": "https://example/weekly",
+            },
+            "channel_ids": {
+                "daily": 123,
+                "hourly": "456",
+                "weekly": "789",
+            },
+        },
+        "alert_daily": [],
+    }
+    p = tmp_path / "invalid_channel_id.json"
+    p.write_text(json.dumps(cfg), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="discord.channel_ids.daily"):
+        JsonConfigLoader(str(p)).load()
+
+
 def test_missing_file_raises():
     loader = JsonConfigLoader("/non/existent/config.json")
     with pytest.raises(FileNotFoundError):

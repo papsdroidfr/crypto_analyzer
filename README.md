@@ -181,6 +181,11 @@ Points de configuration importants :
 - `alert_hourly` : règles d’alerte appliquées à la timeframe horaire (`1h`)
 - `alert_weekly` : règles d’alerte appliquées à la timeframe hebdomadaire (`1w`)
 
+Les commandes `daily`, `hourly` et `weekly` acceptent `--no-notifier` pour lancer
+une analyse sans envoyer de notifications. La commande `simulate` n’utilise pas
+non plus de notifier. Dans ces modes, la configuration Discord n’est pas validée ;
+les autres paramètres restent soumis à validation.
+
 ## Exemple de configuration JSON
 
 ```json

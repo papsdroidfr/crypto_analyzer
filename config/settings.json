@@ -107,7 +107,7 @@
   "alert_daily": [
     {
       "_comment": "RSI 7 en surachat extrême (> 80) — signal fort",
-      "id": "DRSI7OB",
+      "id": "DSRSI7OB",
       "name": "rsi7_extreme_overbought",
       "type": "threshold",
       "timeframes": [
@@ -128,7 +128,7 @@
 
     {
       "_comment": "RSI 7 en survente extrême (< 20) — signal fort",
-      "id": "DRSI7OS",
+      "id": "DLRSI7OS",
       "name": "rsi7_extreme_oversold",
       "type": "threshold",
       "timeframes": [
@@ -150,7 +150,7 @@
 
     {
       "name": "bollinger rebond basse",
-      "id": "DBBREBLO",
+      "id": "DLBBREBLO",
       "type": "threshold",
       "timeframes": ["1d"],
       "severity": "CRITICAL",
@@ -171,18 +171,17 @@
           "operator": ">",
           "right": { "indicator": "bb_lower", "offset": 0 }
         },
-
         {
           "left": { "indicator": "close", "offset": 0 },
           "operator": ">",
-          "right": { "indicator": "close", "offset": 1 }
+          "right": { "indicator": "open", "offset": 0 }
         }
       ]
     },
 
     {
       "name": "bollinger rebond haute",
-      "id": "DBBREBHI",
+      "id": "DSBBREBHI",
       "type": "threshold",
       "timeframes": ["1d"],
       "severity": "CRITICAL",
@@ -206,19 +205,24 @@
         {
           "left": { "indicator": "close", "offset": 0 },
           "operator": "<",
-          "right": { "indicator": "close", "offset": 1 }
+          "right": { "indicator": "open", "offset": 0 }
         }
       ]
     },
 
     {
       "name": "Price crossed below EMA 50" ,
-      "id": "DEMA50DN",
+      "id": "DSEMA50DN",
       "type": "threshold",  
       "timeframes": ["1d"],
       "severity": "CRITICAL",
       "message_tpl": "⚡️ Le prix a croisé en dessous de l'EMA 50 sur {symbol} [{tf}] — Close={close}, EMA_50={sma_50}",
       "conditions": [
+        {
+          "left": { "indicator": "close", "offset": 2 },
+          "operator": ">",
+          "right": { "indicator": "sma_50", "offset": 2 }
+        },
         {
           "left": { "indicator": "close", "offset": 1 },
           "operator": ">",
@@ -234,12 +238,17 @@
     
     {
       "name": "Price crossed above EMA 50" ,
-      "id": "DEMA50UP",
+      "id": "DLEMA50UP",
       "type": "threshold",  
       "timeframes": ["1d"],
       "severity": "CRITICAL",
       "message_tpl": "⚡️ Le prix a croisé au-dessus de l'EMA 50 sur {symbol} [{tf}] — Close={close}, EMA_50={sma_50}",
       "conditions": [
+        {
+          "left": { "indicator": "close", "offset": 2 },
+          "operator": "<",
+          "right": { "indicator": "sma_50", "offset": 2 }
+        },
         {
           "left": { "indicator": "close", "offset": 1 },
           "operator": "<",
@@ -252,10 +261,11 @@
         }   
       ]
     },
+
     {
       "_comment": "Tendance haussière — MACD histogramme en hausse, RSI 7 sous 60 et cours sous la Bollinger supérieure",
       "name": "daily_bullish_macd_rsi_bollinger",
-      "id": "DBULLMACD",
+      "id": "DLBULLMACD",
       "type": "threshold",
       "timeframes": ["1d"],
       "severity": "WARNING",
@@ -267,9 +277,19 @@
           "right": { "indicator": "macd_hist", "offset": 1 }
         },
         {
+          "left": { "indicator": "close", "offset": 0 },
+          "operator": ">",
+          "right": { "indicator": "open", "offset": 0 }
+        },
+        {
           "left": { "indicator": "rsi_7", "offset": 0 },
           "operator": "<",
-          "right": { "value": 60 }
+          "right": { "value": 70 }
+        },
+        {
+          "left": { "indicator": "rsi_7", "offset": 0 },
+          "operator": ">",
+          "right": { "indicator": "rsi_7", "offset": 1 }
         },
         {
           "left": { "indicator": "close", "offset": 0 },
@@ -278,14 +298,15 @@
         }
       ]
     },
+
     {
       "_comment": "Tendance baissière — MACD histogramme en baisse, RSI 7 au-dessus de 60 et cours au-dessus de la Bollinger supérieure",
       "name": "daily_bearish_macd_rsi_bollinger",
-      "id": "DBEARMACD",
+      "id": "DSBEARMACD",
       "type": "threshold",
       "timeframes": ["1d"],
       "severity": "WARNING",
-      "message_tpl": "📉 Tendance baissière sur {symbol} [{tf}] — MACD hist={macd_hist}, RSI 7={rsi_7}, close={close}, BB sup={bb_upper}",
+      "message_tpl": "📉 Tendance baissière sur {symbol} [{tf}] — MACD hist={macd_hist}, RSI 7={rsi_7}, close={close}, BB inf={bb_lower}",
       "conditions": [
         {
           "left": { "indicator": "macd_hist", "offset": 0 },
@@ -293,14 +314,24 @@
           "right": { "indicator": "macd_hist", "offset": 1 }
         },
         {
+          "left": { "indicator": "close", "offset": 0 },
+          "operator": "<",
+          "right": { "indicator": "open", "offset": 0 }
+        },
+        {
           "left": { "indicator": "rsi_7", "offset": 0 },
           "operator": ">",
-          "right": { "value": 40 }
+          "right": { "value": 30 }
+        },
+        {
+          "left": { "indicator": "rsi_7", "offset": 0 },
+          "operator": "<",
+          "right": { "indicator": "rsi_7", "offset": 1 }
         },
         {
           "left": { "indicator": "close", "offset": 0 },
           "operator": ">",
-          "right": { "indicator": "bb_upper", "offset": 0 }
+          "right": { "indicator": "bb_lower", "offset": 0 }
         }
       ]
     }

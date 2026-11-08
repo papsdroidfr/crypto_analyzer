@@ -93,17 +93,21 @@ def _build_engine(
     from src.indicators.technical_indicators import TechnicalIndicatorCalculator
     from src.notifiers.discord_notifier import DiscordNotifier
 
-    config = JsonConfigLoader(config_path).load()
+    if no_notifier:
+        logger.warning("Mode --no-notifier actif : aucune notification Discord ne sera envoyée.")
+        notifier = NullNotifier()
+        config_loader = JsonConfigLoader(config_path, validate_discord=False)
+    else:
+        config_loader = JsonConfigLoader(config_path)
+
+    config = config_loader.load()
 
     fetcher    = BinanceFetcher()
     calculator = TechnicalIndicatorCalculator()
     charts     = MatplotlibChartGenerator()
     registry   = build_default_registry()
 
-    if no_notifier:
-        logger.warning("Mode --no-notifier actif : aucune notification Discord ne sera envoyée.")
-        notifier = NullNotifier()
-    else:
+    if not no_notifier:
         notifier = DiscordNotifier(
             webhook_url=config["discord"]["webhook_urls"][command],
             username=config["discord"].get("username", "CryptoAnalyzer 🤖"),
@@ -156,7 +160,7 @@ def cmd_simulate(args):
     from src.fetchers.binance_fetcher import BinanceFetcher
     from src.indicators.technical_indicators import TechnicalIndicatorCalculator
 
-    config = JsonConfigLoader(args.config).load()
+    config = JsonConfigLoader(args.config, validate_discord=False).load()
     simulator = AlertSimulator(
         fetcher=BinanceFetcher(),
         calculator=TechnicalIndicatorCalculator(),
